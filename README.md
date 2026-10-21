@@ -23,6 +23,7 @@ La primera vez que se abre, la app guía paso a paso con figuras simples: permis
 | **frenando** / freno / frena | El cuadrado rojo enciende sus anillos LED del centro hacia afuera (tipo Mazda) y sube de 40 % a 100 % de intensidad y a los 5 s vuelve a su ritmo intermitente. |
 | **peligro** / balizas | Ambos triángulos parpadean (como las balizas de un auto) hasta que digas «apagar» o «peligro» otra vez. |
 | **apagar** / cancelar / listo | Apaga todas las señales. |
+| **sonido** | Prende o apaga el sonido (tic-tac al señalizar, pitido al frenar). |
 | **cambiar ritmo** | Cambia el ritmo de la luz roja en reposo (lento, rápido, doble destello, pulso, fija, apagada). |
 
 Los intermitentes son **secuenciales tipo LED** (como Mazda o Audi): las franjas se encienden una tras otra hacia afuera y se apagan juntas, con encendido y apagado suaves. En Ajustes también hay modo cometa, clásico y doble destello. Al tocar «Comenzar» hay una animación de bienvenida, como los autos al desbloquearse.
@@ -51,6 +52,7 @@ Estas son restricciones de las plataformas, no de la app:
 - **Voz continua:** funciona mejor en **Chrome para Android**. El reconocimiento se reinicia cada pocos segundos de silencio (en algunos teléfonos suena un pitido) y usa internet. En **iPhone** (Safari) el reconocimiento continuo es inestable, se corta seguido y puede no estar disponible al abrir la app desde la pantalla de inicio.
 - **Música de fondo:** en Android la música normalmente sigue sonando mientras se escucha, aunque algunos teléfonos bajan el volumen al activar el micrófono. En iPhone activar el micrófono suele pausar o cambiar el audio. Con audífonos Bluetooth, el sistema puede pasar al micrófono del audífono y bajar la calidad del sonido.
 - **Pantalla encendida:** se usa la Wake Lock API (Chrome Android, Safari iOS 16.4+). Si no está disponible, desactiva el bloqueo automático del teléfono. La web no puede subir el brillo: súbelo manualmente.
+- **Sonido:** se genera en la app y se mezcla con la música en Android. En iPhone respeta el interruptor de silencio y puede bajar el volumen de la música mientras suena.
 - **La app debe quedar en primer plano.** Si cambias de app o bloqueas la pantalla, el micrófono y las luces se detienen.
 - **Detección de giro por GPS:** compara el rumbo antes y después de girar (55° o más). Con mala señal o a muy baja velocidad puede no detectarlo; entonces el intermitente dura el tiempo configurado.
 

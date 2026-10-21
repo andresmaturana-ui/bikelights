@@ -52,12 +52,15 @@ const ACTIONS = {
   hazard: { label: 'Luces de peligro (ambos lados)', defaults: 'peligro, balizas' },
   stop:   { label: 'Apagar señales',       defaults: 'apagar, cancelar, listo' },
   rhythm: { label: 'Cambiar ritmo de la luz roja', defaults: 'cambiar ritmo, ritmo' },
+  sound:  { label: 'Prender o apagar el sonido', defaults: 'sonido' },
 };
 
 const DEFAULT_SETTINGS = {
   commands: Object.fromEntries(Object.entries(ACTIONS).map(([k, a]) => [k, a.defaults])),
   lang: 'es-CL',
   vibrate: true,
+  sound: true,
+  volume: 0.6,
   turnSeconds: 10,
   turnPattern: 'secuencial',
   brakeSeconds: 5,
@@ -164,6 +167,7 @@ function doAction(action, source = 'voz') {
       break;
     case 'brake':
       state.brake = { start: now, until: now + settings.brakeSeconds * 1000 };
+      brakeSound();
       break;
     case 'hazard':
       state.turn = null;
@@ -173,6 +177,12 @@ function doAction(action, source = 'voz') {
       state.turn = null;
       state.hazard = null;
       state.brake = null;
+      break;
+    case 'sound':
+      settings.sound = !settings.sound;
+      saveSettings();
+      showHeard(settings.sound ? 'Sonido encendido' : 'Sonido apagado');
+      if (settings.sound) beep(1200, 0.08);
       break;
     case 'rhythm': {
       const keys = Object.keys(IDLE_PATTERNS);
@@ -294,11 +304,58 @@ function render(now) {
     brake = () => v;
   }
 
+  // Tic al encender el intermitente y tac al apagarlo, como en un auto
+  const blinking = state.hazard || state.turn;
+  const turnOn = blinking && !state.welcome ? (state.hazard ? left(0) : (state.turn.side === 'left' ? left(0) : right(0))) > 0.5 : false;
+  if (turnOn !== lastTurnOn) {
+    if (blinking && !state.welcome) turnOn ? tick() : tock();
+    lastTurnOn = turnOn;
+  }
+
   showOnly(currentSignal(now));
   paintSegments(turnLights.left, left, dt);
   paintSegments(turnLights.right, right, dt);
   paintSegments(brakeLight, brake, dt);
   requestAnimationFrame(render);
+}
+
+/* ---------- Sonido ---------- */
+
+let audioCtx = null;
+let lastTurnOn = false;
+
+function ensureAudio() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  if (!audioCtx) audioCtx = new Ctx();
+  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  return audioCtx;
+}
+
+// Tono corto con caída rápida; freqEnd permite un barrido de frecuencia
+function beep(freq, duration, freqEnd = freq, type = 'square', level = 1) {
+  if (!settings.sound) return;
+  const ctx = ensureAudio();
+  if (!ctx || ctx.state !== 'running') return;
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  osc.frequency.exponentialRampToValueAtTime(freqEnd, t + duration);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.4 * level * settings.volume, t + 0.004);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + duration + 0.02);
+}
+
+const tick = () => beep(2400, 0.025, 1800);
+const tock = () => beep(1500, 0.03, 1000, 'square', 0.7);
+function brakeSound() {
+  beep(950, 0.18, 650, 'sawtooth');
+  setTimeout(() => beep(950, 0.18, 650, 'sawtooth'), 220);
 }
 
 // En modo "una señal a la vez" se muestra solo la más reciente: el cuadrado por defecto,
@@ -593,6 +650,7 @@ document.addEventListener('pointerdown', showHud);
 
 async function startRide() {
   riding = true;
+  ensureAudio();
   showHud();
   state.welcome = { start: performance.now() };
   $('#start').classList.add('hidden');
@@ -837,7 +895,7 @@ function readForm() {
     if (!el.name) continue;
     if (el.name.startsWith('cmd-')) next.commands[el.name.slice(4)] = el.value;
     else if (el.type === 'checkbox') next[el.name] = el.checked;
-    else if (el.type === 'number') next[el.name] = Number(el.value) || DEFAULT_SETTINGS[el.name];
+    else if (el.type === 'number' || el.type === 'range') next[el.name] = Number(el.value) || DEFAULT_SETTINGS[el.name];
     else next[el.name] = el.value;
   }
   next.contacts = [...document.querySelectorAll('#contacts .contact')]
