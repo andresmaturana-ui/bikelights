@@ -20,7 +20,7 @@ La primera vez que se abre, la app guía paso a paso con figuras simples: permis
 | --- | --- |
 | **izquierda** | El triángulo izquierdo parpadea durante 10 s. Si el GPS detecta que ya giraste, se apaga antes. |
 | **derecha** | Lo mismo con el triángulo derecho. |
-| **frenando** / freno / frena | El cuadrado rojo enciende sus anillos LED del centro hacia afuera (tipo Mazda) y sube de 40 % a 100 % de intensidad pulsa durante 4 s y luego vuelve a su ritmo intermitente. |
+| **frenando** / freno / frena | Los anillos LED del rectángulo rojo pulsan del centro hacia afuera (tipo Mazda) mientras la intensidad sube de 40 % a 100 %. A los 4 s vuelve a su ritmo intermitente. |
 | **peligro** / balizas | Ambos triángulos parpadean (como las balizas de un auto) hasta que digas «apagar» o «peligro» otra vez. |
 | **apagar** / cancelar / listo | Apaga todas las señales. |
 | **sonido** | Prende o apaga el sonido (tic-tac al señalizar, pitido al frenar). |
