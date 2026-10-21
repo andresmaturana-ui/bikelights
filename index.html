@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="Señalizador para ciclistas: luces de giro y freno controladas por voz.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Señalizador">
+  <title>Señalizador</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="layout-auto">
+
+  <!-- Panel de luces: triángulo izquierdo, cuadrado de freno, triángulo derecho -->
+  <main id="signals" aria-label="Luces de señalización">
+    <div class="panel">
+      <svg class="light turn left" id="light-left" viewBox="0 0 100 100" aria-label="Giro a la izquierda">
+        <polygon points="4,50 96,6 96,94" />
+      </svg>
+      <svg class="light brake" id="light-brake" viewBox="0 0 100 100" aria-label="Freno">
+        <rect x="4" y="4" width="92" height="92" />
+      </svg>
+      <svg class="light turn right" id="light-right" viewBox="0 0 100 100" aria-label="Giro a la derecha">
+        <polygon points="96,50 4,6 4,94" />
+      </svg>
+    </div>
+  </main>
+
+  <!-- Barra superior: estado del micrófono y última palabra escuchada -->
+  <header id="status" class="hud">
+    <span id="mic-state" class="pill">Micrófono apagado</span>
+    <span id="heard" class="heard"></span>
+    <button id="btn-settings" class="icon-btn" aria-label="Ajustes">⚙</button>
+  </header>
+
+  <!-- Controles manuales (respaldo de la voz) y botón de emergencia -->
+  <footer id="controls" class="hud">
+    <button class="ctl" data-action="left" aria-label="Izquierda">◀</button>
+    <button class="ctl" data-action="brake" aria-label="Frenando">■</button>
+    <button class="ctl" data-action="right" aria-label="Derecha">▶</button>
+    <button class="ctl" data-action="hazard" aria-label="Peligro">⚠</button>
+    <button class="ctl" data-action="stop" aria-label="Apagar señales">✕</button>
+    <button id="btn-sos" class="sos" aria-label="Emergencia: mantener presionado">
+      <span class="sos-fill"></span>
+      <span class="sos-label">SOS<small>mantén presionado</small></span>
+    </button>
+  </footer>
+
+  <!-- Pantalla de inicio: el primer toque habilita micrófono, GPS y pantalla encendida -->
+  <section id="start" class="overlay">
+    <div class="card">
+      <h1>Señalizador</h1>
+      <p>Monta el teléfono mirando hacia atrás, sube el brillo al máximo y toca <b>Comenzar</b>.</p>
+      <p class="small" id="start-commands"></p>
+      <button id="btn-start" class="primary">Comenzar recorrido</button>
+      <button id="btn-start-settings" class="secondary">Ajustes y contactos</button>
+      <ul id="support" class="support"></ul>
+    </div>
+  </section>
+
+  <!-- Emergencia -->
+  <section id="emergency" class="overlay hidden" role="alertdialog" aria-labelledby="em-title">
+    <div class="card em-card">
+      <h1 id="em-title">🚨 Emergencia</h1>
+      <p id="em-status">Enviando ubicación…</p>
+      <p id="em-location" class="mono"></p>
+      <button id="em-whatsapp" class="primary wa">Enviar WhatsApp con ubicación</button>
+      <div id="em-calls" class="em-calls"></div>
+      <button id="em-close" class="secondary">Cerrar</button>
+    </div>
+  </section>
+
+  <!-- Ajustes -->
+  <dialog id="settings">
+    <form method="dialog" id="settings-form">
+      <h2>Ajustes</h2>
+
+      <fieldset>
+        <legend>Comandos de voz</legend>
+        <p class="small">Separa varias palabras o frases con comas. No importan mayúsculas ni tildes.</p>
+        <div id="command-fields"></div>
+        <label>Idioma del reconocimiento
+          <select name="lang">
+            <option value="es-CL">Español (Chile)</option>
+            <option value="es-AR">Español (Argentina)</option>
+            <option value="es-MX">Español (México)</option>
+            <option value="es-CO">Español (Colombia)</option>
+            <option value="es-PE">Español (Perú)</option>
+            <option value="es-ES">Español (España)</option>
+            <option value="es-US">Español (EE. UU.)</option>
+          </select>
+        </label>
+        <label class="row"><input type="checkbox" name="vibrate"> Vibrar al reconocer un comando</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Luces y ritmos</legend>
+        <label>Duración del intermitente (segundos)
+          <input type="number" name="turnSeconds" min="3" max="30" step="1">
+        </label>
+        <label>Ritmo del intermitente
+          <select name="turnPattern" id="turn-pattern"></select>
+        </label>
+        <label>Duración de la luz de freno (segundos)
+          <input type="number" name="brakeSeconds" min="2" max="15" step="1">
+        </label>
+        <label>Subida de intensidad del freno, de 40 % a 100 % (segundos)
+          <input type="number" name="brakeRampSeconds" min="0" max="5" step="0.5">
+        </label>
+        <label>Ritmo de la luz roja en reposo
+          <select name="idlePattern" id="idle-pattern"></select>
+        </label>
+        <label class="row"><input type="checkbox" name="gpsCancel"> Apagar el intermitente cuando el GPS detecte que ya giraste</label>
+        <label>Disposición
+          <select name="layout">
+            <option value="auto">Automática (según orientación)</option>
+            <option value="horizontal">Horizontal</option>
+            <option value="vertical">Vertical</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Emergencia</legend>
+        <label>Tu nombre (va en el mensaje)
+          <input type="text" name="riderName" autocomplete="name">
+        </label>
+        <label>Mensaje
+          <textarea name="emergencyMessage" rows="3"></textarea>
+        </label>
+        <p class="small">Contactos de emergencia. El primero recibe el WhatsApp y la llamada automática.
+          Usa el número con código de país, por ejemplo +56 9 1234 5678.</p>
+        <div id="contacts"></div>
+        <div class="row-btns">
+          <button type="button" id="btn-add-contact" class="secondary">Agregar contacto</button>
+          <button type="button" id="btn-pick-contact" class="secondary hidden">Elegir de la agenda</button>
+        </div>
+        <label>Número de emergencias públicas
+          <input type="tel" name="publicEmergency">
+        </label>
+        <label>Segundos antes de llamar después del WhatsApp
+          <input type="number" name="callDelaySeconds" min="0" max="15" step="1">
+        </label>
+      </fieldset>
+
+      <div class="dialog-actions">
+        <button type="button" id="btn-reset" class="secondary">Restaurar valores</button>
+        <button value="save" class="primary">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
