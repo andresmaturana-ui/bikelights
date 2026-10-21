@@ -10,11 +10,11 @@ const OFF = 0.08; // intensidad de una luz "apagada": se ve la silueta, pero ten
 // ---------- Ritmos ----------
 
 const IDLE_PATTERNS = {
-  lento:   { label: 'Intermitente lento',  fn: (t) => (t % 1000 < 500 ? 0.6 : 0.12) },
-  rapido:  { label: 'Intermitente rápido', fn: (t) => (t % 400 < 200 ? 0.6 : 0.12) },
-  doble:   { label: 'Doble destello',      fn: (t) => { const p = t % 1200; return p < 100 || (p >= 220 && p < 320) ? 0.7 : 0.12; } },
-  pulso:   { label: 'Pulso suave',         fn: (t) => 0.15 + 0.45 * (0.5 - 0.5 * Math.cos((2 * Math.PI * t) / 1600)) },
-  fijo:    { label: 'Fija',                fn: () => 0.55 },
+  lento:   { label: 'Intermitente lento',  fn: (t) => (t % 1000 < 500 ? 0.85 : 0.35) },
+  rapido:  { label: 'Intermitente rápido', fn: (t) => (t % 400 < 200 ? 0.85 : 0.35) },
+  doble:   { label: 'Doble destello',      fn: (t) => { const p = t % 1200; return p < 100 || (p >= 220 && p < 320) ? 1 : 0.35; } },
+  pulso:   { label: 'Pulso suave',         fn: (t) => 0.35 + 0.5 * (0.5 - 0.5 * Math.cos((2 * Math.PI * t) / 1600)) },
+  fijo:    { label: 'Fija',                fn: () => 0.8 },
   apagado: { label: 'Apagada',             fn: () => OFF },
 };
 
@@ -66,6 +66,7 @@ const DEFAULT_SETTINGS = {
   idlePattern: 'lento',
   gpsCancel: true,
   layout: 'auto',
+  display: 'una',
   riderName: '',
   emergencyMessage: 'EMERGENCIA: {nombre} puede haber tenido un accidente en bicicleta y necesita ayuda.',
   contacts: [],
@@ -194,9 +195,9 @@ function buildSegments(svg, side) {
     // k = 0 es la franja junto al cuadrado; la última es la punta del triángulo
     const x = side === 'left' ? 96 - (k + 1) * width : 4 + k * width;
     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    rect.setAttribute('x', (x + 0.6).toFixed(2));
+    rect.setAttribute('x', (x + 0.4).toFixed(2));
     rect.setAttribute('y', '0');
-    rect.setAttribute('width', (width - 1.2).toFixed(2));
+    rect.setAttribute('width', (width - 0.8).toFixed(2));
     rect.setAttribute('height', '100');
     group.append(rect);
     rects.push(rect);
@@ -293,15 +294,34 @@ function render(now) {
     brake = () => v;
   }
 
+  showOnly(currentSignal(now));
   paintSegments(turnLights.left, left, dt);
   paintSegments(turnLights.right, right, dt);
   paintSegments(brakeLight, brake, dt);
   requestAnimationFrame(render);
 }
 
+// En modo "una señal a la vez" se muestra solo la más reciente: el cuadrado por defecto,
+// la flecha mientras se gira y el cuadrado otra vez si se frena después
+function currentSignal(now) {
+  if (state.welcome) return 'brake';
+  const brakeActive = state.brake && now < state.brake.until;
+  const turning = state.hazard || state.turn;
+  if (!turning) return 'brake';
+  if (brakeActive && state.brake.start > turning.start) return 'brake';
+  return state.hazard ? 'hazard' : state.turn.side;
+}
+
+let shownSignal = null;
+function showOnly(signal) {
+  if (signal === shownSignal) return;
+  shownSignal = signal;
+  document.body.dataset.show = signal;
+}
+
 function applyLayout() {
-  document.body.classList.remove('layout-auto', 'layout-horizontal', 'layout-vertical');
-  document.body.classList.add(`layout-${settings.layout}`);
+  document.body.classList.remove('layout-auto', 'layout-horizontal', 'layout-vertical', 'display-una', 'display-tres');
+  document.body.classList.add(`layout-${settings.layout}`, `display-${settings.display}`);
 }
 
 /* =========================================================
@@ -561,8 +581,19 @@ function renderSupport() {
     `Di «${words('left')}», «${words('right')}» o «${words('brake')}». Puedes cambiar las palabras en Ajustes.`;
 }
 
+// Mientras se pedalea los controles se esconden para dejar toda la pantalla a la señal.
+// El botón SOS queda siempre visible; un toque en la pantalla muestra los controles.
+let hudTimer = null;
+function showHud() {
+  document.body.classList.remove('hud-hidden');
+  clearTimeout(hudTimer);
+  if (riding) hudTimer = setTimeout(() => document.body.classList.add('hud-hidden'), 5000);
+}
+document.addEventListener('pointerdown', showHud);
+
 async function startRide() {
   riding = true;
+  showHud();
   state.welcome = { start: performance.now() };
   $('#start').classList.add('hidden');
   try { await document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }); } catch { /* opcional */ }
