@@ -1,6 +1,6 @@
 :root {
-  --orange: #ff8f2e;
-  --red: #ff1a2e;
+  --orange: #ff9100;
+  --red: #ff0000;
   --bg: #000;
   --fg: #f2f2f2;
   --muted: #9a9a9a;
@@ -64,7 +64,7 @@ html, body {
 .light.turn rect, .light.brake path { opacity: 0.08; }
 .light.brake { opacity: 1; }
 .light.brake { fill: var(--red); }
-.light.on { filter: drop-shadow(0 0 3vmin currentColor); }
+.light.on { filter: drop-shadow(0 0 5vmin currentColor); }
 .light.turn.on { color: var(--orange); }
 .light.brake.on { color: var(--red); }
 
@@ -302,3 +302,87 @@ input[type="checkbox"] { width: 20px; height: 20px; }
   .ctl .ic { width: 34px; height: 34px; }
   .ctl span { font-size: 9.5px; }
 }
+
+/* ---------- Guía inicial ---------- */
+
+.wizard {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: calc(56px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
+  text-align: center;
+  overflow: auto;
+}
+.wizard h1 { margin: 0; font-size: 30px; }
+.wizard > p { margin: 0; max-width: 360px; font-size: 18px; line-height: 1.4; color: #cfcfcf; }
+.wz-skip {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  right: 16px;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font-size: 16px;
+  padding: 8px;
+}
+.wz-art { width: min(280px, 70vw); }
+.wz-art svg { width: 100%; height: auto; overflow: visible; }
+.wz-body { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 360px; }
+.wz-body input { font-size: 18px; padding: 12px; }
+.wz-nav { display: flex; gap: 10px; width: 100%; max-width: 360px; }
+.wz-nav > * { flex: 1; }
+.wz-dots { display: flex; gap: 10px; }
+.wz-dots span { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #555; }
+.wz-dots span.done { background: #555; }
+.wz-dots span.on { background: var(--orange); border-color: var(--orange); }
+.wz-status { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; font-size: 16px; }
+.wz-status.ok { color: #7dff9a; }
+.wz-status.bad { color: #ffb36b; }
+
+.a-orange { fill: var(--orange); }
+.a-red { fill: var(--red); }
+.a-white { fill: #fff; }
+.a-green { fill: #2fbf5b; }
+.a-ring { fill: none; stroke: #fff; stroke-width: 4; }
+.a-rays line { stroke: #fff; stroke-width: 4; stroke-linecap: round; }
+.a-check { fill: none; stroke: #000; stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
+.a-text { fill: #fff; font: 800 34px system-ui, sans-serif; }
+.a-dim { opacity: 0.18; transition: opacity .15s; }
+.a-lit { opacity: 1; filter: drop-shadow(0 0 8px currentColor); transition: opacity .1s; }
+.a-pulse1, .a-pulse2 { animation: wz-pulse 1.6s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+.a-pulse2 { animation-delay: .3s; }
+@keyframes wz-pulse { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .a-pulse1, .a-pulse2 { animation: none; } }
+
+/* ---------- Una señal grande a la vez ---------- */
+
+body.display-una .light { display: none; }
+body.display-una[data-show="brake"] .light.brake,
+body.display-una[data-show="left"] .light.left,
+body.display-una[data-show="right"] .light.right,
+body.display-una[data-show="hazard"] .light.turn { display: block; }
+body.display-una .panel { flex-direction: row; }
+body.display-una .panel .left { order: 1; }
+body.display-una .panel .right { order: 3; }
+body.display-una[data-show="hazard"] .panel { flex-direction: row; }
+@media (orientation: portrait) {
+  body.display-una[data-show="hazard"] .panel { flex-direction: column; }
+  body.display-una[data-show="hazard"] .panel .right { order: 1; }
+  body.display-una[data-show="hazard"] .panel .left { order: 3; }
+}
+
+/* Controles escondidos mientras se pedalea; SOS siempre visible */
+#status, #controls .ctl { transition: opacity .3s; }
+body.hud-hidden #status,
+body.hud-hidden #controls .ctl { opacity: 0; pointer-events: none; }
+body.hud-hidden #signals { padding: env(safe-area-inset-top) 8px calc(var(--ctl-h) + 12px + env(safe-area-inset-bottom)); }
+body.hud-hidden #controls { justify-content: flex-end; }
+/* El cuadrado de freno ocupa toda la pantalla disponible para verse más */
+body.display-una .light.brake { aspect-ratio: auto; width: 100%; height: 100%; }
+body.display-tres .light.brake { aspect-ratio: 1; }
