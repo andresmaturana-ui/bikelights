@@ -71,6 +71,7 @@ const DEFAULT_SETTINGS = {
   contacts: [],
   publicEmergency: '131',
   callDelaySeconds: 3,
+  onboarded: false,
 };
 
 let settings = loadSettings();
@@ -181,6 +182,7 @@ function doAction(action, source = 'voz') {
     }
   }
   if (source === 'voz') buzz();
+  document.dispatchEvent(new CustomEvent('signal', { detail: action }));
 }
 
 // Franjas de cada triángulo y su intensidad mostrada (suavizada como un LED real)
@@ -837,23 +839,261 @@ $('#btn-reset').addEventListener('click', () => {
 });
 
 // Selector de contactos (solo Chrome en Android): no lee la agenda, el usuario elige
-if ('contacts' in navigator && 'ContactsManager' in window) {
+const canPickContacts = 'contacts' in navigator && 'ContactsManager' in window;
+
+async function pickContacts(multiple) {
+  const chosen = await navigator.contacts.select(['name', 'tel'], { multiple });
+  return chosen
+    .filter((c) => c.tel?.length)
+    .map((c) => ({ name: c.name?.[0] || '', phone: c.tel[0] }));
+}
+
+if (canPickContacts) {
   const pick = $('#btn-pick-contact');
   pick.classList.remove('hidden');
   pick.addEventListener('click', async () => {
     try {
-      const chosen = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+      const chosen = await pickContacts(true);
       const list = $('#contacts');
       // Reemplaza filas vacías por los contactos elegidos
       for (const row of [...list.querySelectorAll('.contact')]) {
         if (!row.querySelector('.c-phone').value.trim()) row.remove();
       }
-      for (const c of chosen) {
-        if (c.tel?.length) list.append(contactRow({ name: c.name?.[0] || '', phone: c.tel[0] }));
-      }
+      for (const c of chosen) list.append(contactRow(c));
     } catch { /* cancelado */ }
   });
 }
+
+
+/* =========================================================
+   Guía inicial
+   ========================================================= */
+
+// Ilustraciones con figuras básicas
+const ART = {
+  lights: `<svg viewBox="0 0 220 100">
+    <polygon points="10,50 70,18 70,82" class="a-orange"/>
+    <rect x="80" y="20" width="60" height="60" class="a-red"/>
+    <polygon points="210,50 150,18 150,82" class="a-orange"/></svg>`,
+  voice: `<svg viewBox="0 0 220 120">
+    <circle cx="110" cy="60" r="54" class="a-ring a-pulse2"/>
+    <circle cx="110" cy="60" r="36" class="a-ring a-pulse1"/>
+    <circle cx="110" cy="60" r="18" class="a-orange"/></svg>`,
+  location: `<svg viewBox="0 0 220 120">
+    <circle cx="110" cy="60" r="54" class="a-ring"/>
+    <circle cx="110" cy="60" r="32" class="a-ring"/>
+    <circle cx="110" cy="60" r="12" class="a-red"/></svg>`,
+  commands: `<svg viewBox="0 0 220 100">
+    <polygon id="wz-left" points="10,50 70,18 70,82" class="a-orange a-dim"/>
+    <rect id="wz-brake" x="80" y="20" width="60" height="60" class="a-red a-dim"/>
+    <polygon id="wz-right" points="210,50 150,18 150,82" class="a-orange a-dim"/></svg>`,
+  sos: `<svg viewBox="0 0 220 120">
+    <circle cx="110" cy="60" r="56" class="a-red"/>
+    <text x="110" y="72" text-anchor="middle" class="a-text">SOS</text></svg>`,
+  mount: `<svg viewBox="0 0 220 120">
+    <rect x="60" y="6" width="100" height="108" rx="12" class="a-ring"/>
+    <polygon points="72,60 92,48 92,72" class="a-orange"/>
+    <rect x="98" y="48" width="24" height="24" class="a-red"/>
+    <polygon points="148,60 128,48 128,72" class="a-orange"/>
+    <circle cx="190" cy="24" r="10" class="a-white"/>
+    <g class="a-rays"><line x1="190" y1="4" x2="190" y2="8"/><line x1="190" y1="40" x2="190" y2="44"/>
+    <line x1="170" y1="24" x2="174" y2="24"/><line x1="206" y1="24" x2="210" y2="24"/></g></svg>`,
+  done: `<svg viewBox="0 0 220 120">
+    <circle cx="110" cy="60" r="54" class="a-green"/>
+    <polyline points="84,62 102,80 138,42" class="a-check"/></svg>`,
+};
+
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+});
+
+function okLine(text, ok = true) {
+  return `<p class="wz-status ${ok ? 'ok' : 'bad'}">${icon(ok ? 'check' : 'alert', 'ic-sm')}<span>${text}</span></p>`;
+}
+
+const WIZARD_STEPS = [
+  {
+    art: ART.lights,
+    title: 'Hola',
+    text: 'Tu teléfono será la luz trasera de tu bici: giros y freno, con tu voz.',
+  },
+  {
+    art: ART.voice,
+    title: 'Micrófono',
+    text: 'Para escuchar tus órdenes mientras pedaleas.',
+    action: {
+      label: 'Permitir micrófono',
+      async run(body) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach((t) => t.stop());
+          body.innerHTML = okLine('Micrófono listo');
+        } catch {
+          body.innerHTML = okLine('Sin permiso. Puedes activarlo después en los ajustes del navegador.', false);
+        }
+      },
+    },
+  },
+  {
+    art: ART.location,
+    title: 'Ubicación',
+    text: 'Para enviar dónde estás en una emergencia y apagar el giro cuando ya doblaste.',
+    action: {
+      label: 'Permitir ubicación',
+      run(body) {
+        if (!('geolocation' in navigator)) {
+          body.innerHTML = okLine('Este teléfono no tiene GPS disponible.', false);
+          return;
+        }
+        body.innerHTML = '<p class="small">Buscando…</p>';
+        navigator.geolocation.getCurrentPosition(
+          (p) => { lastPosition = p; body.innerHTML = okLine('Ubicación lista'); },
+          () => { body.innerHTML = okLine('Sin permiso de ubicación.', false); },
+          { enableHighAccuracy: true, timeout: 20000 },
+        );
+      },
+    },
+  },
+  {
+    art: ART.commands,
+    title: 'Prueba tu voz',
+    text: '',
+    enter(text) {
+      const w = (a) => phrasesFor(a)[0] || '—';
+      text.textContent = `Di «${w('left')}», «${w('brake')}» o «${w('right')}». La figura se enciende.`;
+    },
+    action: {
+      label: 'Probar',
+      run(body) {
+        if (!SpeechRecognition) {
+          body.innerHTML = okLine('Este navegador no reconoce voz. Usa los botones de la pantalla o Chrome en Android.', false);
+          return;
+        }
+        startListening();
+        body.innerHTML = '<p class="small">Escuchando… Puedes cambiar las palabras en Ajustes.</p>';
+      },
+    },
+  },
+  {
+    art: ART.sos,
+    title: 'Contacto de emergencia',
+    text: 'Recibirá un WhatsApp con tu ubicación y luego una llamada.',
+    enter(text, body) {
+      const c = settings.contacts[0] || { name: '', phone: '' };
+      body.innerHTML = `
+        <input id="wz-name" type="text" placeholder="Nombre" autocomplete="off">
+        <input id="wz-phone" type="tel" placeholder="+56 9 1234 5678" autocomplete="off">
+        ${canPickContacts ? '<button id="wz-pick" type="button" class="secondary">Elegir de la agenda</button>' : ''}`;
+      $('#wz-name').value = c.name;
+      $('#wz-phone').value = c.phone;
+      $('#wz-pick')?.addEventListener('click', async () => {
+        try {
+          const [picked] = await pickContacts(false);
+          if (picked) { $('#wz-name').value = picked.name; $('#wz-phone').value = picked.phone; }
+        } catch { /* cancelado */ }
+      });
+    },
+    leave() {
+      const phone = $('#wz-phone').value.trim();
+      if (digits(phone).length < 6) return;
+      const contact = { name: $('#wz-name').value.trim(), phone };
+      settings.contacts = [contact, ...settings.contacts.slice(1)];
+      saveSettings();
+    },
+  },
+  {
+    art: ART.mount,
+    title: 'Monta el teléfono',
+    text: 'Pantalla mirando hacia atrás y brillo al máximo.',
+    enter(text, body) {
+      if (isStandalone()) return;
+      if (installPrompt) {
+        body.innerHTML = '<button id="wz-install" type="button" class="secondary">Instalar en la pantalla de inicio</button>';
+        $('#wz-install').addEventListener('click', async () => {
+          installPrompt.prompt();
+          await installPrompt.userChoice;
+          installPrompt = null;
+          body.innerHTML = okLine('Instalada');
+        });
+      } else if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+        body.innerHTML = '<p class="small">Para instalarla: botón Compartir y luego «Agregar a inicio».</p>';
+      }
+    },
+  },
+  {
+    art: ART.done,
+    title: 'Listo',
+    text: 'Toca Comenzar cada vez que salgas a pedalear.',
+    last: true,
+  },
+];
+
+let wizardStep = 0;
+
+function showWizardStep(i) {
+  const prev = WIZARD_STEPS[wizardStep];
+  if (i !== wizardStep) prev.leave?.();
+  wizardStep = i;
+  const step = WIZARD_STEPS[i];
+  $('#wz-art').innerHTML = step.art;
+  $('#wz-title').textContent = step.title;
+  const text = $('#wz-text');
+  text.textContent = step.text;
+  const body = $('#wz-body');
+  body.innerHTML = '';
+  step.enter?.(text, body);
+  if (step.action) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'primary wz-action';
+    btn.textContent = step.action.label;
+    const result = document.createElement('div');
+    btn.addEventListener('click', () => step.action.run(result));
+    body.append(btn, result);
+  }
+  $('#wz-back').classList.toggle('hidden', i === 0);
+  $('#wz-next').textContent = step.last ? 'Comenzar' : 'Siguiente';
+  $('#wz-dots').innerHTML = WIZARD_STEPS
+    .map((_, k) => `<span class="${k === i ? 'on' : k < i ? 'done' : ''}"></span>`)
+    .join('');
+}
+
+function openWizard() {
+  dialog.close();
+  $('#start').classList.add('hidden');
+  $('#wizard').classList.remove('hidden');
+  wizardStep = 0;
+  showWizardStep(0);
+}
+
+function finishWizard(start) {
+  WIZARD_STEPS[wizardStep].leave?.();
+  settings.onboarded = true;
+  saveSettings();
+  renderSupport();
+  $('#wizard').classList.add('hidden');
+  if (start) startRide();
+  else $('#start').classList.remove('hidden');
+}
+
+$('#wz-next').addEventListener('click', () => {
+  if (WIZARD_STEPS[wizardStep].last) finishWizard(true);
+  else showWizardStep(wizardStep + 1);
+});
+$('#wz-back').addEventListener('click', () => showWizardStep(Math.max(0, wizardStep - 1)));
+$('#wz-skip').addEventListener('click', () => finishWizard(false));
+$('#btn-guide').addEventListener('click', openWizard);
+
+// En el paso de prueba, la figura correspondiente se enciende al reconocer la palabra
+document.addEventListener('signal', (e) => {
+  const el = document.getElementById(`wz-${e.detail}`);
+  if (!el) return;
+  el.classList.remove('a-dim');
+  el.classList.add('a-lit');
+  setTimeout(() => { el.classList.add('a-dim'); el.classList.remove('a-lit'); }, 1500);
+});
 
 /* =========================================================
    Arranque
@@ -861,6 +1101,7 @@ if ('contacts' in navigator && 'ContactsManager' in window) {
 
 applyLayout();
 renderSupport();
+if (!settings.onboarded) openWizard();
 requestAnimationFrame(render);
 
 if ('serviceWorker' in navigator) {

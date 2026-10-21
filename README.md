@@ -8,6 +8,10 @@ PWA que convierte el teléfono en una luz trasera de señalización: triángulos
 
 La disposición cambia sola según cómo esté montado el teléfono (o se fija en Ajustes).
 
+## Guía inicial
+
+La primera vez que se abre, la app guía paso a paso con figuras simples: permisos de micrófono y ubicación, prueba de voz (la figura se enciende al reconocer la palabra), contacto de emergencia, montaje del teléfono e instalación. Se puede repetir desde Ajustes.
+
 ## Comandos de voz (se pueden cambiar en Ajustes)
 
 | Di… | Qué pasa |

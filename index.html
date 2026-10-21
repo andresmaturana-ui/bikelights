@@ -83,6 +83,20 @@
     </div>
   </section>
 
+  <!-- Guía inicial: se muestra la primera vez que se abre la app -->
+  <section id="wizard" class="wizard hidden" aria-live="polite">
+    <button id="wz-skip" class="wz-skip" type="button">Omitir</button>
+    <div class="wz-art" id="wz-art"></div>
+    <h1 id="wz-title"></h1>
+    <p id="wz-text"></p>
+    <div id="wz-body" class="wz-body"></div>
+    <div class="wz-nav">
+      <button id="wz-back" type="button" class="secondary">Atrás</button>
+      <button id="wz-next" type="button" class="primary">Siguiente</button>
+    </div>
+    <div id="wz-dots" class="wz-dots"></div>
+  </section>
+
   <!-- Emergencia -->
   <section id="emergency" class="overlay hidden" role="alertdialog" aria-labelledby="em-title">
     <div class="card em-card">
@@ -172,6 +186,7 @@
       </fieldset>
 
       <div class="dialog-actions">
+        <button type="button" id="btn-guide" class="secondary">Repetir guía</button>
         <button type="button" id="btn-reset" class="secondary">Restaurar valores</button>
         <button value="save" class="primary">Guardar</button>
       </div>
