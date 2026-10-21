@@ -54,6 +54,7 @@ const ACTIONS = {
   stop:   { label: 'Apagar señales',       defaults: 'apagar, cancelar, listo' },
   rhythm: { label: 'Cambiar ritmo de la luz roja', defaults: 'cambiar ritmo, ritmo' },
   sound:  { label: 'Prender o apagar el sonido', defaults: 'sonido' },
+  finish: { label: 'Terminar el recorrido', defaults: 'termine recorrido, termine el recorrido, fin del recorrido' },
 };
 
 const DEFAULT_SETTINGS = {
@@ -186,6 +187,9 @@ function doAction(action, source = 'voz') {
       state.hazard = null;
       state.brake = null;
       break;
+    case 'finish':
+      endRide();
+      break;
     case 'sound':
       settings.sound = !settings.sound;
       saveSettings();
@@ -229,7 +233,7 @@ const turnLights = {
 };
 
 // El cuadrado de freno son anillos concéntricos; k = 0 es el centro
-const RINGS = 5;
+const RINGS = 8;
 function buildRings(svg) {
   const group = svg.querySelector('.segs');
   const step = 46 / RINGS;
@@ -249,12 +253,13 @@ function buildRings(svg) {
 const brakeLight = buildRings(lights.brake);
 
 // Efecto de freno: los anillos se encienden del centro hacia afuera mientras la intensidad sube
-// Pulso de freno: los anillos se encienden del centro hacia afuera, bajan y vuelven a empezar
-const BRAKE_PULSE_MS = 650;
+// Pulso de freno: un cuadrado chico en el centro que crece hasta llenar la pantalla, y vuelve a empezar
+const BRAKE_PULSE_MS = 900;
+const BRAKE_GROW_MS = 560;
 const BRAKE_EFFECTS = {
-  anillos: { label: 'Anillos que pulsan del centro hacia afuera (tipo Mazda)', fn: (t, k, level) => {
+  anillos: { label: 'Cuadrado que crece del centro hacia afuera (tipo Mazda)', fn: (t, k, level, n = RINGS) => {
     const p = t % BRAKE_PULSE_MS;
-    return p >= k * 60 && p < 520 ? level : 0.4 * level;
+    return p >= (k * BRAKE_GROW_MS) / n ? level : OFF;
   } },
   anillosUnaVez: { label: 'Anillos una sola vez', fn: (t, k, level) => (t >= k * 60 ? level : OFF) },
   clasico: { label: 'Clásico (todo junto)', fn: (t, k, level) => level },
@@ -664,6 +669,7 @@ document.addEventListener('pointerdown', showHud);
 
 async function startRide() {
   riding = true;
+  document.body.classList.remove('ride-ended');
   ensureAudio();
   showHud();
   state.welcome = { start: performance.now() };
@@ -673,6 +679,44 @@ async function startRide() {
   startGps();
   startListening();
 }
+
+// Fin del recorrido: apaga señales, micrófono, GPS y pantalla encendida, y despide al ciclista
+function endRide() {
+  riding = false;
+  state.turn = null;
+  state.hazard = null;
+  state.brake = null;
+  wantListening = false;
+  if (recognition) {
+    recognition.onend = null;
+    try { recognition.abort(); } catch { /* ya detenido */ }
+    recognition = null;
+  }
+  setMicState('Micrófono apagado');
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+  wakeLock?.release().catch(() => {});
+  wakeLock = null;
+  clearTimeout(hudTimer);
+  document.body.classList.remove('hud-hidden');
+  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  document.body.classList.add('ride-ended');
+  $('#finish').classList.remove('hidden');
+  if (settings.sound && 'speechSynthesis' in window) {
+    const msg = new SpeechSynthesisUtterance('¡Qué bueno que llegaste bien!');
+    msg.lang = settings.lang;
+    speechSynthesis.speak(msg);
+  }
+}
+
+$('#btn-finish').addEventListener('click', endRide);
+$('#btn-new-ride').addEventListener('click', () => {
+  $('#finish').classList.add('hidden');
+  document.body.classList.remove('ride-ended');
+  $('#start').classList.remove('hidden');
+});
 
 $('#btn-start').addEventListener('click', startRide);
 $('#btn-start-settings').addEventListener('click', openSettings);
@@ -814,9 +858,18 @@ $('#em-close').addEventListener('click', () => {
 // Se dispara al soltar, porque abrir WhatsApp requiere un gesto del usuario.
 (() => {
   const btn = $('#btn-sos');
+  const hint = $('#sos-hint');
   btn.style.setProperty('--hold-ms', `${HOLD_MS}ms`);
   let timer = null;
+  let hintTimer = null;
   let armed = false;
+
+  const showHint = (text, ms = 4000) => {
+    hint.textContent = text;
+    hint.classList.remove('hidden');
+    clearTimeout(hintTimer);
+    if (ms) hintTimer = setTimeout(() => hint.classList.add('hidden'), ms);
+  };
 
   const reset = () => {
     clearTimeout(timer);
@@ -828,10 +881,12 @@ $('#em-close').addEventListener('click', () => {
     e.preventDefault();
     armed = false;
     btn.classList.add('holding');
+    showHint('Sigue presionando…', 0);
     timer = setTimeout(() => {
       armed = true;
       buzz(100);
       btn.querySelector('small').textContent = 'suelta para enviar';
+      showHint('Suelta para pedir ayuda', 0);
     }, HOLD_MS);
   });
 
@@ -840,11 +895,15 @@ $('#em-close').addEventListener('click', () => {
     reset();
     armed = false;
     btn.querySelector('small').textContent = 'mantén presionado';
-    if (fire) triggerEmergency();
-    else showHeard('Mantén presionado SOS un segundo para pedir ayuda');
+    if (fire) {
+      hint.classList.add('hidden');
+      triggerEmergency();
+    } else {
+      showHint('Emergencia: mantén presionado este botón 1 segundo y suelta. Se enviará la ubicación del ciclista por WhatsApp y luego se llamará a su contacto.');
+    }
   });
 
-  btn.addEventListener('pointercancel', () => { reset(); armed = false; });
+  btn.addEventListener('pointercancel', () => { reset(); armed = false; hint.classList.add('hidden'); });
   btn.addEventListener('contextmenu', (e) => e.preventDefault());
 })();
 
