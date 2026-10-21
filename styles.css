@@ -430,3 +430,112 @@ body.ride-ended #signals, body.ride-ended #btn-sos, body.ride-ended #controls { 
 .sos-label small { display: none; }
 .sos-label b { font-size: 24px; }
 .sos-label .ic { width: 26px; height: 26px; }
+
+/* ---------- Pantalla de inicio (estilo urbano) ---------- */
+
+.start {
+  --display: "Roboto Condensed", "sans-serif-condensed", "Arial Narrow", "Helvetica Neue Condensed", Impact, system-ui, sans-serif;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background:
+    radial-gradient(circle at 50% 30%, #2a0a00 0, #000 60%),
+    #000;
+  text-align: center;
+  overflow: auto;
+}
+.tape {
+  flex: none;
+  width: 100%;
+  height: 22px;
+  background: repeating-linear-gradient(-45deg, var(--orange) 0 14px, #000 14px 28px);
+  background-size: 39.6px 39.6px;
+  animation: tape-move 1s linear infinite;
+}
+.tape:first-child { margin-top: env(safe-area-inset-top); }
+.tape:last-child { margin-bottom: env(safe-area-inset-bottom); }
+@keyframes tape-move { to { background-position: 39.6px 0; } }
+
+.start-hero { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 20px 0; }
+.start-demo { position: relative; width: min(320px, 82vw); margin-bottom: 10px; }
+.start-demo svg { width: 100%; height: auto; overflow: visible; }
+.d-seg { fill: var(--orange); opacity: .12; }
+.d-brake { fill: var(--red); animation: d-brake 2.4s ease-in-out infinite; transform-origin: 150px 55px; }
+.d-left .s1, .d-right .s1 { animation: d-seq 1.2s infinite; }
+.d-left .s2, .d-right .s2 { animation: d-seq 1.2s infinite .12s; }
+.d-left .s3, .d-right .s3 { animation: d-seq 1.2s infinite .24s; }
+.d-right .d-seg { animation-delay: .6s; }
+.d-right .s2 { animation-delay: .72s; }
+.d-right .s3 { animation-delay: .84s; }
+@keyframes d-seq { 0%, 4% { opacity: .12; } 8%, 40% { opacity: 1; filter: drop-shadow(0 0 6px var(--orange)); } 48%, 100% { opacity: .12; } }
+@keyframes d-brake { 0%, 100% { opacity: .45; transform: scale(.92); } 50% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 10px var(--red)); } }
+
+.sticker {
+  position: absolute;
+  right: -6px;
+  bottom: -14px;
+  padding: 4px 10px;
+  background: #fff;
+  color: #000;
+  font: 900 15px/1 var(--display);
+  letter-spacing: .06em;
+  transform: rotate(-6deg);
+  box-shadow: 3px 3px 0 var(--red);
+}
+
+.start-title {
+  margin: 8px 0 0;
+  font: 900 clamp(38px, 12vw, 104px)/.88 var(--display);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: -.02em;
+  color: #fff;
+  transform: skewX(-9deg);
+  text-shadow: 4px 4px 0 var(--red), 8px 8px 0 #000;
+  word-break: break-word;
+}
+.start-tag {
+  margin: 0;
+  font: 900 clamp(24px, 8vw, 44px)/1 var(--display);
+  text-transform: uppercase;
+  color: var(--orange);
+  transform: skewX(-9deg);
+  letter-spacing: .03em;
+}
+.start-sub { margin: 10px 0 0; max-width: 380px; font-size: 18px; line-height: 1.4; color: #e8e8e8; }
+.start-sub b { color: #000; background: var(--orange); padding: 0 6px; font-family: var(--display); letter-spacing: .03em; }
+.start-mini { margin: 4px 0 0; font: 700 14px var(--display); text-transform: uppercase; letter-spacing: .1em; color: #8a8a8a; }
+
+.start-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; padding: 0 20px; }
+.go {
+  width: min(420px, 100%);
+  height: 84px;
+  border: 0;
+  background: var(--orange);
+  color: #000;
+  font: 900 40px/1 var(--display);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);
+  box-shadow: inset 0 -6px 0 #0003;
+  animation: go-pulse 1.8s ease-in-out infinite;
+}
+.go:active { background: #fff; }
+@keyframes go-pulse { 0%, 100% { filter: none; } 50% { filter: drop-shadow(0 0 14px var(--orange)); } }
+.link { background: none; border: 0; color: #cfcfcf; font: 700 15px var(--display); text-transform: uppercase; letter-spacing: .1em; text-decoration: underline; text-underline-offset: 4px; padding: 8px; }
+.start .support { max-width: 420px; text-align: left; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tape, .d-seg, .d-brake, .go { animation: none; }
+  .d-seg { opacity: 1; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .start-demo { width: min(220px, 40vw); }
+  .start-title { font-size: 44px; }
+  .start-sub, .start-mini { display: none; }
+}

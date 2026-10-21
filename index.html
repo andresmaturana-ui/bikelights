@@ -78,15 +78,36 @@
   </footer>
 
   <!-- Pantalla de inicio: el primer toque habilita micrófono, GPS y pantalla encendida -->
-  <section id="start" class="overlay">
-    <div class="card">
-      <h1>Señalizador</h1>
-      <p>Monta el teléfono mirando hacia atrás, sube el brillo al máximo y toca <b>Comenzar</b>.</p>
-      <p class="small" id="start-commands"></p>
-      <button id="btn-start" class="primary">Comenzar recorrido</button>
-      <button id="btn-start-settings" class="secondary">Ajustes y contactos</button>
+  <section id="start" class="start">
+    <div class="tape" aria-hidden="true"></div>
+    <div class="start-hero">
+      <div class="start-demo" aria-hidden="true">
+        <svg viewBox="0 0 300 110">
+          <g class="d-left">
+            <polygon points="6,55 40,30 40,80" class="d-seg s1"/>
+            <polygon points="44,27 64,13 64,97 44,83" class="d-seg s2"/>
+            <polygon points="68,10 88,0 88,110 68,100" class="d-seg s3"/>
+          </g>
+          <rect x="104" y="12" width="92" height="86" class="d-brake"/>
+          <g class="d-right">
+            <polygon points="294,55 260,30 260,80" class="d-seg s1"/>
+            <polygon points="256,27 236,13 236,97 256,83" class="d-seg s2"/>
+            <polygon points="232,10 212,0 212,110 232,100" class="d-seg s3"/>
+          </g>
+        </svg>
+        <span class="sticker">TU VOZ MANDA</span>
+      </div>
+      <h1 class="start-title">Señalizador</h1>
+      <p class="start-tag">Que te vean.</p>
+      <p class="start-sub" id="start-commands"></p>
+      <p class="start-mini">Celu mirando pa'&nbsp;atrás. Brillo a full.</p>
+    </div>
+    <div class="start-actions">
+      <button id="btn-start" class="go">A rodar</button>
+      <button id="btn-start-settings" class="link">Ajustes y contactos</button>
       <ul id="support" class="support"></ul>
     </div>
+    <div class="tape" aria-hidden="true"></div>
   </section>
 
   <!-- Guía inicial: se muestra la primera vez que se abre la app -->
