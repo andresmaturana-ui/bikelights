@@ -62,6 +62,7 @@ const DEFAULT_SETTINGS = {
   turnPattern: 'secuencial',
   brakeSeconds: 5,
   brakeRampSeconds: 1,
+  brakeEffect: 'anillos',
   idlePattern: 'lento',
   gpsCancel: true,
   layout: 'auto',
@@ -205,7 +206,32 @@ const turnLights = {
   left: buildSegments(lights.left, 'left'),
   right: buildSegments(lights.right, 'right'),
 };
-let brakeShown = OFF;
+
+// El cuadrado de freno son anillos concéntricos; k = 0 es el centro
+const RINGS = 5;
+function buildRings(svg) {
+  const group = svg.querySelector('.segs');
+  const step = 46 / RINGS;
+  const rects = [];
+  const square = (h) => `M${50 - h},${50 - h}H${50 + h}V${50 + h}H${50 - h}Z`;
+  for (let k = 0; k < RINGS; k++) {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const outer = (k + 1) * step;
+    const inner = k * step + 0.8;
+    path.setAttribute('d', k === 0 ? square(outer) : square(outer) + square(inner));
+    path.setAttribute('fill-rule', 'evenodd');
+    group.append(path);
+    rects.push(path);
+  }
+  return { svg, rects, shown: new Array(RINGS).fill(OFF) };
+}
+const brakeLight = buildRings(lights.brake);
+
+// Efecto de freno: los anillos se encienden del centro hacia afuera mientras la intensidad sube
+const BRAKE_EFFECTS = {
+  anillos: { label: 'Anillos LED del centro hacia afuera (tipo Mazda)', fn: (t, k, level) => (t >= k * 60 ? level : OFF) },
+  clasico: { label: 'Clásico (todo junto)', fn: (t, k, level) => level },
+};
 let lastFrame = performance.now();
 
 // Los LED encienden rápido y se apagan con una cola suave
@@ -214,7 +240,7 @@ function smooth(current, target, dt) {
   return current + (target - current) * (1 - Math.exp(-dt / tau));
 }
 
-function paintTurn(light, valueAt, dt) {
+function paintSegments(light, valueAt, dt) {
   let max = 0;
   light.rects.forEach((rect, k) => {
     const v = smooth(light.shown[k], valueAt(k), dt);
@@ -250,23 +276,24 @@ function render(now) {
 
   // Freno: sube de 40 % a 100 % y se mantiene; al terminar vuelve al ritmo de reposo
   let brake;
+  const brakeFn = (BRAKE_EFFECTS[settings.brakeEffect] || BRAKE_EFFECTS.anillos).fn;
   if (state.brake && now < state.brake.until) {
     const ramp = settings.brakeRampSeconds * 1000;
     const t = now - state.brake.start;
-    brake = ramp > 0 ? Math.min(1, 0.4 + 0.6 * (t / ramp)) : 1;
+    const level = ramp > 0 ? Math.min(1, 0.4 + 0.6 * (t / ramp)) : 1;
+    brake = (k) => brakeFn(t, k, level);
   } else if (state.welcome) {
     const t = now - state.welcome.start;
-    brake = t < 900 ? t / 900 : 1;
+    brake = (k) => BRAKE_EFFECTS.anillos.fn(t / 2, k, Math.min(1, t / 900));
   } else {
     state.brake = null;
-    brake = idleFn(now);
+    const v = idleFn(now);
+    brake = () => v;
   }
 
-  paintTurn(turnLights.left, left, dt);
-  paintTurn(turnLights.right, right, dt);
-  brakeShown = smooth(brakeShown, brake, dt);
-  lights.brake.style.setProperty('--i', brakeShown.toFixed(3));
-  lights.brake.classList.toggle('on', brakeShown > 0.5);
+  paintSegments(turnLights.left, left, dt);
+  paintSegments(turnLights.right, right, dt);
+  paintSegments(brakeLight, brake, dt);
   requestAnimationFrame(render);
 }
 
@@ -729,6 +756,7 @@ function fillSelect(select, patterns) {
 }
 fillSelect($('#idle-pattern'), IDLE_PATTERNS);
 fillSelect($('#turn-pattern'), TURN_PATTERNS);
+fillSelect($('#brake-effect'), BRAKE_EFFECTS);
 
 function contactRow(contact = { name: '', phone: '' }) {
   const row = document.createElement('div');

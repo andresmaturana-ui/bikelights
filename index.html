@@ -42,7 +42,7 @@
         <g class="segs" clip-path="url(#clip-left)"></g>
       </svg>
       <svg class="light brake" id="light-brake" viewBox="0 0 100 100" aria-label="Freno">
-        <rect x="4" y="4" width="92" height="92" />
+        <g class="segs"></g>
       </svg>
       <svg class="light turn right" id="light-right" viewBox="0 0 100 100" aria-label="Giro a la derecha">
         <defs><clipPath id="clip-right"><polygon points="96,50 4,6 4,94" /></clipPath></defs>
@@ -131,6 +131,9 @@
         </label>
         <label>Subida de intensidad del freno, de 40 % a 100 % (segundos)
           <input type="number" name="brakeRampSeconds" min="0" max="5" step="0.5">
+        </label>
+        <label>Efecto de freno
+          <select name="brakeEffect" id="brake-effect"></select>
         </label>
         <label>Ritmo de la luz roja en reposo
           <select name="idlePattern" id="idle-pattern"></select>
