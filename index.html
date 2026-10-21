@@ -37,19 +37,25 @@
   <!-- Panel de luces: triángulo izquierdo, cuadrado de freno, triángulo derecho -->
   <main id="signals" aria-label="Luces de señalización">
     <div class="panel">
-      <svg class="light turn left" id="light-left" viewBox="0 0 100 100" aria-label="Giro a la izquierda">
+      <svg class="light turn left" id="light-left" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Giro a la izquierda">
         <defs><clipPath id="clip-left"><polygon points="4,50 96,6 96,94" /></clipPath></defs>
         <g class="segs" clip-path="url(#clip-left)"></g>
       </svg>
       <svg class="light brake" id="light-brake" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Freno">
         <g class="segs"></g>
       </svg>
-      <svg class="light turn right" id="light-right" viewBox="0 0 100 100" aria-label="Giro a la derecha">
+      <svg class="light turn right" id="light-right" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Giro a la derecha">
         <defs><clipPath id="clip-right"><polygon points="96,50 4,6 4,94" /></clipPath></defs>
         <g class="segs" clip-path="url(#clip-right)"></g>
       </svg>
     </div>
   </main>
+
+  <!-- Botón de emergencia: al centro de la pantalla, cualquier persona puede usarlo -->
+  <button id="btn-sos" class="sos" aria-label="Emergencia: mantener presionado">
+    <span class="sos-fill"></span>
+    <span class="sos-label"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><b>SOS</b><small>mantén presionado</small></span>
+  </button>
 
   <!-- Barra superior: estado del micrófono y última palabra escuchada -->
   <header id="status" class="hud">
@@ -65,10 +71,6 @@
     <button class="ctl ctl-right" data-action="right" aria-label="Derecha"><svg class="ic" aria-hidden="true"><use href="#i-right"/></svg><span>Derecha</span></button>
     <button class="ctl ctl-hazard" data-action="hazard" aria-label="Peligro"><svg class="ic" aria-hidden="true"><use href="#i-hazard"/></svg><span>Peligro</span></button>
     <button class="ctl ctl-stop" data-action="stop" aria-label="Apagar señales"><svg class="ic" aria-hidden="true"><use href="#i-power"/></svg><span>Apagar</span></button>
-    <button id="btn-sos" class="sos" aria-label="Emergencia: mantener presionado">
-      <span class="sos-fill"></span>
-      <span class="sos-label"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><b>SOS</b><small>mantén presionado</small></span>
-    </button>
   </footer>
 
   <!-- Pantalla de inicio: el primer toque habilita micrófono, GPS y pantalla encendida -->

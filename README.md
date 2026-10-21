@@ -6,7 +6,7 @@ PWA que convierte el teléfono en una luz trasera de señalización: triángulos
 | --- | --- |
 | ◀ ■ ▶ | ▶ arriba, ■ al centro, ◀ abajo |
 
-Por defecto se muestra **una señal grande a la vez**: el rectángulo rojo ocupa toda la pantalla y, al girar, cambia por la flecha grande (en peligro, las dos flechas). Mientras se pedalea los controles se esconden y el botón SOS queda atenuado; un toque en la pantalla los muestra. En Ajustes se puede volver a mostrar las tres figuras juntas.
+Por defecto se muestra **una señal grande a la vez**: el rectángulo rojo ocupa toda la pantalla y, al girar, cambia por la flecha grande (en peligro, las dos flechas). Las figuras ocupan toda la pantalla y el botón SOS es un círculo al centro. Mientras se pedalea los controles se esconden y el SOS queda atenuado; un toque en la pantalla los muestra. En Ajustes se puede volver a mostrar las tres figuras juntas.
 
 La disposición cambia sola según cómo esté montado el teléfono (o se fija en Ajustes).
 
@@ -20,7 +20,7 @@ La primera vez que se abre, la app guía paso a paso con figuras simples: permis
 | --- | --- |
 | **izquierda** | El triángulo izquierdo parpadea durante 10 s. Si el GPS detecta que ya giraste, se apaga antes. |
 | **derecha** | Lo mismo con el triángulo derecho. |
-| **frenando** / freno / frena | Los anillos LED del rectángulo rojo pulsan del centro hacia afuera (tipo Mazda) mientras la intensidad sube de 40 % a 100 %. A los 4 s vuelve a su ritmo intermitente. |
+| **frenando** / freno / frena | Un cuadrado chico en el centro crece hasta llenar la pantalla, una y otra vez (tipo Mazda), mientras la intensidad sube de 40 % a 100 %. A los 4 s vuelve a su ritmo intermitente. |
 | **peligro** / balizas | Ambos triángulos parpadean (como las balizas de un auto) hasta que digas «apagar» o «peligro» otra vez. |
 | **apagar** / cancelar / listo | Apaga todas las señales. |
 | **sonido** | Prende o apaga el sonido (tic-tac al señalizar, pitido al frenar). |

@@ -229,7 +229,7 @@ const turnLights = {
 };
 
 // El cuadrado de freno son anillos concéntricos; k = 0 es el centro
-const RINGS = 5;
+const RINGS = 8;
 function buildRings(svg) {
   const group = svg.querySelector('.segs');
   const step = 46 / RINGS;
@@ -249,12 +249,13 @@ function buildRings(svg) {
 const brakeLight = buildRings(lights.brake);
 
 // Efecto de freno: los anillos se encienden del centro hacia afuera mientras la intensidad sube
-// Pulso de freno: los anillos se encienden del centro hacia afuera, bajan y vuelven a empezar
-const BRAKE_PULSE_MS = 650;
+// Pulso de freno: un cuadrado chico en el centro que crece hasta llenar la pantalla, y vuelve a empezar
+const BRAKE_PULSE_MS = 900;
+const BRAKE_GROW_MS = 560;
 const BRAKE_EFFECTS = {
-  anillos: { label: 'Anillos que pulsan del centro hacia afuera (tipo Mazda)', fn: (t, k, level) => {
+  anillos: { label: 'Cuadrado que crece del centro hacia afuera (tipo Mazda)', fn: (t, k, level, n = RINGS) => {
     const p = t % BRAKE_PULSE_MS;
-    return p >= k * 60 && p < 520 ? level : 0.4 * level;
+    return p >= (k * BRAKE_GROW_MS) / n ? level : OFF;
   } },
   anillosUnaVez: { label: 'Anillos una sola vez', fn: (t, k, level) => (t >= k * 60 ? level : OFF) },
   clasico: { label: 'Clásico (todo junto)', fn: (t, k, level) => level },
