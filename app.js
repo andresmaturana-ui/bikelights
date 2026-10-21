@@ -5,6 +5,7 @@
    ========================================================= */
 
 const STORAGE_KEY = 'senalizador.settings.v1';
+const SETTINGS_VERSION = 2;
 const OFF = 0.08; // intensidad de una luz "apagada": se ve la silueta, pero tenue
 
 // ---------- Ritmos ----------
@@ -63,7 +64,7 @@ const DEFAULT_SETTINGS = {
   volume: 0.6,
   turnSeconds: 10,
   turnPattern: 'secuencial',
-  brakeSeconds: 5,
+  brakeSeconds: 4,
   brakeRampSeconds: 1,
   brakeEffect: 'anillos',
   idlePattern: 'lento',
@@ -76,6 +77,7 @@ const DEFAULT_SETTINGS = {
   publicEmergency: '131',
   callDelaySeconds: 3,
   onboarded: false,
+  version: SETTINGS_VERSION,
 };
 
 let settings = loadSettings();
@@ -83,6 +85,12 @@ let settings = loadSettings();
 function loadSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    // v2: el freno pasa a durar 4 s con pulsos; se descartan los valores guardados de antes
+    if ((saved.version || 1) < 2) {
+      delete saved.brakeSeconds;
+      delete saved.brakeEffect;
+    }
+    saved.version = SETTINGS_VERSION;
     return {
       ...DEFAULT_SETTINGS,
       ...saved,
@@ -241,8 +249,14 @@ function buildRings(svg) {
 const brakeLight = buildRings(lights.brake);
 
 // Efecto de freno: los anillos se encienden del centro hacia afuera mientras la intensidad sube
+// Pulso de freno: los anillos se encienden del centro hacia afuera, bajan y vuelven a empezar
+const BRAKE_PULSE_MS = 650;
 const BRAKE_EFFECTS = {
-  anillos: { label: 'Anillos LED del centro hacia afuera (tipo Mazda)', fn: (t, k, level) => (t >= k * 60 ? level : OFF) },
+  anillos: { label: 'Anillos que pulsan del centro hacia afuera (tipo Mazda)', fn: (t, k, level) => {
+    const p = t % BRAKE_PULSE_MS;
+    return p >= k * 60 && p < 520 ? level : 0.4 * level;
+  } },
+  anillosUnaVez: { label: 'Anillos una sola vez', fn: (t, k, level) => (t >= k * 60 ? level : OFF) },
   clasico: { label: 'Clásico (todo junto)', fn: (t, k, level) => level },
 };
 let lastFrame = performance.now();
@@ -297,7 +311,7 @@ function render(now) {
     brake = (k) => brakeFn(t, k, level);
   } else if (state.welcome) {
     const t = now - state.welcome.start;
-    brake = (k) => BRAKE_EFFECTS.anillos.fn(t / 2, k, Math.min(1, t / 900));
+    brake = (k) => BRAKE_EFFECTS.anillosUnaVez.fn(t / 2, k, Math.min(1, t / 900));
   } else {
     state.brake = null;
     const v = idleFn(now);
