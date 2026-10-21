@@ -404,3 +404,22 @@ body.display-una .panel { flex-direction: row; }
 #status { background: linear-gradient(#000c 60%, transparent); }
 #controls { transition: opacity .3s; }
 body.hud-hidden #controls { opacity: 0; pointer-events: none; }
+
+.sos-hint {
+  position: fixed;
+  left: 50%;
+  top: calc(50% + clamp(110px, 32vmin, 170px) / 2 + 14px);
+  transform: translateX(-50%);
+  z-index: 7;
+  width: min(340px, calc(100vw - 32px));
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #000e;
+  border: 1px solid #fff6;
+  color: #fff;
+  font-size: 17px;
+  line-height: 1.35;
+  text-align: center;
+  pointer-events: none;
+}

@@ -34,7 +34,7 @@ En Ajustes se configuran además la duración del intermitente y del freno, la s
 
 ## Botón SOS
 
-Cualquier persona puede **mantener presionado SOS un segundo y soltar**:
+Cualquier persona puede **mantener presionado un segundo el círculo SOS del centro y soltar**. Si solo lo toca, aparece un mensaje que explica qué hacer:
 
 1. Se abre WhatsApp con un mensaje para el primer contacto de emergencia, con un enlace de Google Maps a la ubicación del ciclista.
 2. Al volver a la app, tras una cuenta regresiva (3 s por defecto) se intenta llamar a ese contacto.
