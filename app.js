@@ -679,8 +679,9 @@ function renderSupport() {
     list.append(li);
   }
   const words = (a) => phrasesFor(a)[0] || '—';
-  $('#start-commands').textContent =
-    `Di «${words('left')}», «${words('right')}» o «${words('brake')}». Puedes cambiar las palabras en Ajustes.`;
+  const up = (a) => words(a).toUpperCase();
+  $('#start-commands').innerHTML =
+    `Grita <b>${up('left')}</b>, <b>${up('right')}</b> o <b>${up('brake')}</b>.<br>La luz hace el resto.`;
 }
 
 // Mientras se pedalea los controles se esconden para dejar toda la pantalla a la señal.
