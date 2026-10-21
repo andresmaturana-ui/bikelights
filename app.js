@@ -165,7 +165,10 @@ function doAction(action, source = 'voz') {
   switch (action) {
     case 'left':
     case 'right':
+      // Cada comando reemplaza al anterior: se corta el freno y su sonido
+      stopSounds();
       state.hazard = null;
+      state.brake = null;
       // Repetir el comando reinicia los 10 s; se conserva el rumbo inicial si ya se estaba girando a ese lado
       state.turn = {
         side: action,
@@ -175,14 +178,20 @@ function doAction(action, source = 'voz') {
       };
       break;
     case 'brake':
+      stopSounds();
+      state.turn = null;
+      state.hazard = null;
       state.brake = { start: now, until: now + settings.brakeSeconds * 1000 };
-      brakeSound();
+      lastBrakePulse = -1;
       break;
     case 'hazard':
+      stopSounds();
       state.turn = null;
+      state.brake = null;
       state.hazard = state.hazard ? null : { start: now };
       break;
     case 'stop':
+      stopSounds();
       state.turn = null;
       state.hazard = null;
       state.brake = null;
@@ -323,6 +332,15 @@ function render(now) {
     brake = () => v;
   }
 
+  // Un pitido por cada pulso del freno
+  if (state.brake && now < state.brake.until) {
+    const pulse = Math.floor((now - state.brake.start) / BRAKE_PULSE_MS);
+    if (pulse !== lastBrakePulse) {
+      lastBrakePulse = pulse;
+      brakeBeep();
+    }
+  }
+
   // Tic al encender el intermitente y tac al apagarlo, como en un auto
   const blinking = state.hazard || state.turn;
   const turnOn = blinking && !state.welcome ? (state.hazard ? left(0) : (state.turn.side === 'left' ? left(0) : right(0))) > 0.5 : false;
@@ -342,6 +360,15 @@ function render(now) {
 
 let audioCtx = null;
 let lastTurnOn = false;
+let lastBrakePulse = -1;
+const playing = new Set();
+
+function stopSounds() {
+  for (const osc of playing) {
+    try { osc.stop(); } catch { /* ya terminó */ }
+  }
+  playing.clear();
+}
 
 function ensureAudio() {
   const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -366,16 +393,15 @@ function beep(freq, duration, freqEnd = freq, type = 'square', level = 1) {
   gain.gain.exponentialRampToValueAtTime(0.4 * level * settings.volume, t + 0.004);
   gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
   osc.connect(gain).connect(ctx.destination);
+  osc.onended = () => playing.delete(osc);
+  playing.add(osc);
   osc.start(t);
   osc.stop(t + duration + 0.02);
 }
 
 const tick = () => beep(2400, 0.025, 1800);
 const tock = () => beep(1500, 0.03, 1000, 'square', 0.7);
-function brakeSound() {
-  beep(950, 0.18, 650, 'sawtooth');
-  setTimeout(() => beep(950, 0.18, 650, 'sawtooth'), 220);
-}
+const brakeBeep = () => beep(950, 0.22, 600, 'sawtooth');
 
 // En modo "una señal a la vez" se muestra solo la más reciente: el cuadrado por defecto,
 // la flecha mientras se gira y el cuadrado otra vez si se frena después

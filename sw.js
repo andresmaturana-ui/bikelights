@@ -1,5 +1,5 @@
 // Caché de la app para que funcione sin conexión (el reconocimiento de voz puede requerir internet)
-const CACHE = 'senalizador-v12';
+const CACHE = 'senalizador-v13';
 const ASSETS = [
   './',
   'index.html',
@@ -29,7 +29,8 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
   event.respondWith(
-    fetch(request)
+    // no-cache: siempre pregunta al servidor por la última versión (GitHub Pages cachea 10 minutos)
+    fetch(request, { cache: 'no-cache' })
       .then((response) => {
         const copy = response.clone();
         caches.open(CACHE).then((cache) => cache.put(request, copy));
