@@ -66,7 +66,7 @@ const DEFAULT_SETTINGS = {
   gpsCancel: true,
   layout: 'auto',
   riderName: '',
-  emergencyMessage: '🚨 EMERGENCIA: {nombre} puede haber tenido un accidente en bicicleta y necesita ayuda.',
+  emergencyMessage: 'EMERGENCIA: {nombre} puede haber tenido un accidente en bicicleta y necesita ayuda.',
   contacts: [],
   publicEmergency: '131',
   callDelaySeconds: 3,
@@ -95,6 +95,10 @@ function saveSettings() {
 // ---------- Utilidades ----------
 
 const $ = (sel) => document.querySelector(sel);
+
+function icon(name, cls = 'ic') {
+  return `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+}
 
 function normalize(text) {
   return text
@@ -307,7 +311,7 @@ function findCommands(text) {
 
 function setMicState(text, cls = '') {
   const el = $('#mic-state');
-  el.textContent = text;
+  el.querySelector('.mic-text').textContent = text;
   el.className = `pill ${cls}`;
 }
 
@@ -340,7 +344,7 @@ function startListening() {
         if (now - (lastFired[action] || 0) > 1200) {
           lastFired[action] = now;
           doAction(action, 'voz');
-          showHeard(`«${transcript.trim()}» → ${ACTIONS[action].label}`);
+          showHeard(`«${transcript.trim()}»: ${ACTIONS[action].label}`);
         }
       }
       if (actions.length > done) firedPerResult.set(i, actions.length);
@@ -504,20 +508,23 @@ function renderSupport() {
   list.innerHTML = '';
   for (const [ok, name, warning] of items) {
     const li = document.createElement('li');
-    li.textContent = ok ? `✓ ${name}` : `⚠ ${warning}`;
+    li.innerHTML = icon(ok ? 'check' : 'alert', 'ic-sm');
+    li.append(ok ? name : warning);
     if (!ok) li.className = 'warn';
     list.append(li);
   }
   if (isIOS) {
     const li = document.createElement('li');
     li.className = 'warn';
-    li.textContent = '⚠ En iPhone el reconocimiento de voz se corta con frecuencia y puede pausar la música.';
+    li.innerHTML = icon('alert', 'ic-sm');
+    li.append('En iPhone el reconocimiento de voz se corta con frecuencia y puede pausar la música.');
     list.append(li);
   }
   if (!settings.contacts.length) {
     const li = document.createElement('li');
     li.className = 'warn';
-    li.textContent = '⚠ Agrega al menos un contacto de emergencia en Ajustes.';
+    li.innerHTML = icon('alert', 'ic-sm');
+    li.append('Agrega al menos un contacto de emergencia en Ajustes.');
     list.append(li);
   }
   const words = (a) => phrasesFor(a)[0] || '—';
@@ -568,9 +575,9 @@ function emergencyText() {
   let text = settings.emergencyMessage.replaceAll('{nombre}', name);
   if (lastPosition) {
     const time = new Date(lastPosition.timestamp).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
-    text += `\n📍 Ubicación: ${mapsLink(lastPosition)} (±${Math.round(lastPosition.coords.accuracy)} m, ${time})`;
+    text += `\nUbicación: ${mapsLink(lastPosition)} (±${Math.round(lastPosition.coords.accuracy)} m, ${time})`;
   } else {
-    text += '\n📍 Ubicación no disponible.';
+    text += '\nUbicación no disponible.';
   }
   return text;
 }
@@ -587,7 +594,7 @@ function renderEmergency() {
 
   const primary = settings.contacts[0];
   $('#em-whatsapp').classList.toggle('hidden', !primary);
-  if (primary) $('#em-whatsapp').textContent = `Enviar WhatsApp a ${primary.name || primary.phone}`;
+  if (primary) $('.em-wa-text').textContent = `Enviar WhatsApp a ${primary.name || primary.phone}`;
 
   const calls = $('#em-calls');
   calls.innerHTML = '';
@@ -595,8 +602,8 @@ function renderEmergency() {
     const a = document.createElement('a');
     a.href = telHref(phone);
     a.className = 'primary call';
-    a.style.cssText = 'display:flex;align-items:center;justify-content:center;text-decoration:none;';
-    a.textContent = `📞 ${label}`;
+    a.innerHTML = icon('phone');
+    a.append(label);
     a.addEventListener('click', cancelCountdown);
     calls.append(a);
   };
@@ -729,7 +736,7 @@ function contactRow(contact = { name: '', phone: '' }) {
   row.innerHTML = `
     <input type="text" placeholder="Nombre" class="c-name" autocomplete="off">
     <input type="tel" placeholder="+56 9 1234 5678" class="c-phone" autocomplete="off">
-    <button type="button" aria-label="Quitar">✕</button>`;
+    <button type="button" aria-label="Quitar">${icon('close', 'ic-sm')}</button>`;
   row.querySelector('.c-name').value = contact.name;
   row.querySelector('.c-phone').value = contact.phone;
   row.querySelector('button').addEventListener('click', () => row.remove());
