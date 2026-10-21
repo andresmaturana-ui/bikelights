@@ -24,10 +24,12 @@ La primera vez que se abre, la app guía paso a paso con figuras simples: permis
 | **peligro** / balizas | Ambos triángulos parpadean (como las balizas de un auto) hasta que digas «apagar» o «peligro» otra vez. |
 | **apagar** / cancelar / listo | Apaga todas las señales. |
 | **terminé recorrido** | Apaga las señales, el micrófono y el GPS, y muestra «¡Qué bueno que llegaste bien!». También con el botón de bandera. |
-| **sonido** | Prende o apaga el sonido (tic-tac al señalizar, pitido al frenar). |
+| **sonido** | Prende o apaga el sonido (tic-tac al señalizar, un pitido por cada pulso de freno). |
 | **cambiar ritmo** | Cambia el ritmo de la luz roja en reposo (lento, rápido, doble destello, pulso, fija, apagada). |
 
 Los intermitentes son **secuenciales tipo LED** (como Mazda o Audi): las franjas se encienden una tras otra hacia afuera y se apagan juntas, con encendido y apagado suaves. En Ajustes también hay modo cometa, clásico y doble destello. Al tocar «Comenzar» hay una animación de bienvenida, como los autos al desbloquearse.
+
+Cada comando reemplaza al anterior: si frenas mientras giras, se apaga el intermitente y su sonido, y al revés.
 
 Cada acción acepta varias palabras o frases separadas por comas; no importan mayúsculas ni tildes. También hay botones en pantalla como respaldo.
 
