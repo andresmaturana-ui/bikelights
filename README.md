@@ -19,6 +19,8 @@ La disposición cambia sola según cómo esté montado el teléfono (o se fija e
 | **apagar** / cancelar / listo | Apaga todas las señales. |
 | **cambiar ritmo** | Cambia el ritmo de la luz roja en reposo (lento, rápido, doble destello, pulso, fija, apagada). |
 
+Los intermitentes son **secuenciales tipo LED** (como Mazda o Audi): las franjas se encienden una tras otra hacia afuera y se apagan juntas, con encendido y apagado suaves. En Ajustes también hay modo cometa, clásico y doble destello. Al tocar «Comenzar» hay una animación de bienvenida, como los autos al desbloquearse.
+
 Cada acción acepta varias palabras o frases separadas por comas; no importan mayúsculas ni tildes. También hay botones en pantalla como respaldo.
 
 En Ajustes se configuran además la duración del intermitente y del freno, la subida de intensidad del freno, el ritmo del intermitente y el idioma/acento del reconocimiento.

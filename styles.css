@@ -59,7 +59,8 @@ html, body {
   opacity: var(--i);
   overflow: visible;
 }
-.light.turn { fill: var(--orange); }
+.light.turn { fill: var(--orange); opacity: 1; }
+.light.turn rect { opacity: 0.08; }
 .light.brake { fill: var(--red); }
 .light.on { filter: drop-shadow(0 0 3vmin currentColor); }
 .light.turn.on { color: var(--orange); }

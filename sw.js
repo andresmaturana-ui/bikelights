@@ -1,5 +1,5 @@
 // Caché de la app para que funcione sin conexión (el reconocimiento de voz puede requerir internet)
-const CACHE = 'senalizador-v1';
+const CACHE = 'senalizador-v2';
 const ASSETS = [
   './',
   'index.html',

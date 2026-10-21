@@ -18,12 +18,30 @@ const IDLE_PATTERNS = {
   apagado: { label: 'Apagada',             fn: () => OFF },
 };
 
+// Los intermitentes se dibujan como franjas de LED. Cada patrón recibe el tiempo,
+// el índice de la franja (0 = la más cercana al centro, n - 1 = la punta) y el total.
+const SEGMENTS = 7;
+
+// Secuencial como en Mazda/Audi: las franjas se encienden una tras otra hacia afuera y se apagan juntas
+const sequential = (period, sweep, hold) => (t, k, n) => {
+  const p = t % period;
+  return p >= (k * sweep) / (n - 1) && p < sweep + hold ? 1 : OFF;
+};
+
 const TURN_PATTERNS = {
-  normal:  { label: 'Normal (como un auto)', fn: (t) => (t % 660 < 360 ? 1 : OFF) },
-  rapido:  { label: 'Rápido',                fn: (t) => (t % 320 < 170 ? 1 : OFF) },
-  barrido: { label: 'Barrido (se enciende de a poco)', fn: (t) => { const p = (t % 800) / 800; return p < 0.75 ? 0.2 + p : OFF; } },
+  secuencial: { label: 'Secuencial LED (tipo Mazda/Audi)', fn: sequential(760, 300, 200) },
+  secuencialRapido: { label: 'Secuencial rápido', fn: sequential(480, 180, 120) },
+  cometa:  { label: 'Cometa (una luz que corre hacia afuera)', fn: (t, k, n) => {
+    const d = ((t % 640) / 640) * (n + 3) - k;
+    return d >= 0 && d < 3 ? Math.max(OFF, 1 - d / 3) : OFF;
+  } },
+  normal:  { label: 'Clásico (todo junto)',  fn: (t) => (t % 660 < 360 ? 1 : OFF) },
+  rapido:  { label: 'Clásico rápido',        fn: (t) => (t % 320 < 170 ? 1 : OFF) },
   doble:   { label: 'Doble destello',        fn: (t) => { const p = t % 900; return p < 120 || (p >= 240 && p < 360) ? 1 : OFF; } },
 };
+
+// Al comenzar el recorrido: animación de bienvenida, como los autos al desbloquearse
+const WELCOME_MS = 1600;
 
 // ---------- Comandos ----------
 
@@ -41,7 +59,7 @@ const DEFAULT_SETTINGS = {
   lang: 'es-CL',
   vibrate: true,
   turnSeconds: 10,
-  turnPattern: 'normal',
+  turnPattern: 'secuencial',
   brakeSeconds: 5,
   brakeRampSeconds: 1,
   idlePattern: 'lento',
@@ -114,6 +132,7 @@ const state = {
   turn: null,    // { side: 'left'|'right', start, until, baseBearing }
   hazard: null,  // { start }
   brake: null,   // { start, until }
+  welcome: null, // { start }
 };
 
 const lights = {
@@ -159,22 +178,70 @@ function doAction(action, source = 'voz') {
   if (source === 'voz') buzz();
 }
 
-function setIntensity(el, value) {
-  el.style.setProperty('--i', value.toFixed(3));
-  el.classList.toggle('on', value > 0.5);
+// Franjas de cada triángulo y su intensidad mostrada (suavizada como un LED real)
+function buildSegments(svg, side) {
+  const group = svg.querySelector('.segs');
+  const width = 92 / SEGMENTS;
+  const rects = [];
+  for (let k = 0; k < SEGMENTS; k++) {
+    // k = 0 es la franja junto al cuadrado; la última es la punta del triángulo
+    const x = side === 'left' ? 96 - (k + 1) * width : 4 + k * width;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', (x + 0.6).toFixed(2));
+    rect.setAttribute('y', '0');
+    rect.setAttribute('width', (width - 1.2).toFixed(2));
+    rect.setAttribute('height', '100');
+    group.append(rect);
+    rects.push(rect);
+  }
+  return { svg, rects, shown: new Array(SEGMENTS).fill(OFF) };
+}
+
+const turnLights = {
+  left: buildSegments(lights.left, 'left'),
+  right: buildSegments(lights.right, 'right'),
+};
+let brakeShown = OFF;
+let lastFrame = performance.now();
+
+// Los LED encienden rápido y se apagan con una cola suave
+function smooth(current, target, dt) {
+  const tau = target > current ? 25 : 90;
+  return current + (target - current) * (1 - Math.exp(-dt / tau));
+}
+
+function paintTurn(light, valueAt, dt) {
+  let max = 0;
+  light.rects.forEach((rect, k) => {
+    const v = smooth(light.shown[k], valueAt(k), dt);
+    light.shown[k] = v;
+    rect.style.opacity = v.toFixed(3);
+    max = Math.max(max, v);
+  });
+  light.svg.classList.toggle('on', max > 0.5);
 }
 
 function render(now) {
+  const dt = Math.min(100, now - lastFrame);
+  lastFrame = now;
+  const turnFn = (TURN_PATTERNS[settings.turnPattern] || TURN_PATTERNS.secuencial).fn;
+  const idleFn = (IDLE_PATTERNS[settings.idlePattern] || IDLE_PATTERNS.lento).fn;
+  const off = () => OFF;
+
   // Intermitentes
-  let left = OFF;
-  let right = OFF;
-  const turnFn = (TURN_PATTERNS[settings.turnPattern] || TURN_PATTERNS.normal).fn;
+  let left = off;
+  let right = off;
   if (state.turn && now >= state.turn.until) state.turn = null;
-  if (state.hazard) {
-    left = right = turnFn(now - state.hazard.start);
+  if (state.welcome && now - state.welcome.start >= WELCOME_MS) state.welcome = null;
+  if (state.welcome) {
+    const t = now - state.welcome.start;
+    left = right = (k) => TURN_PATTERNS.secuencial.fn(t, k, SEGMENTS);
+  } else if (state.hazard) {
+    left = right = (k) => turnFn(now - state.hazard.start, k, SEGMENTS);
   } else if (state.turn) {
-    const v = turnFn(now - state.turn.start);
-    if (state.turn.side === 'left') left = v; else right = v;
+    const turn = state.turn;
+    const fn = (k) => turnFn(now - turn.start, k, SEGMENTS);
+    if (turn.side === 'left') left = fn; else right = fn;
   }
 
   // Freno: sube de 40 % a 100 % y se mantiene; al terminar vuelve al ritmo de reposo
@@ -183,14 +250,19 @@ function render(now) {
     const ramp = settings.brakeRampSeconds * 1000;
     const t = now - state.brake.start;
     brake = ramp > 0 ? Math.min(1, 0.4 + 0.6 * (t / ramp)) : 1;
+  } else if (state.welcome) {
+    const t = now - state.welcome.start;
+    brake = t < 900 ? t / 900 : 1;
   } else {
     state.brake = null;
-    brake = (IDLE_PATTERNS[settings.idlePattern] || IDLE_PATTERNS.lento).fn(now);
+    brake = idleFn(now);
   }
 
-  setIntensity(lights.left, left);
-  setIntensity(lights.right, right);
-  setIntensity(lights.brake, brake);
+  paintTurn(turnLights.left, left, dt);
+  paintTurn(turnLights.right, right, dt);
+  brakeShown = smooth(brakeShown, brake, dt);
+  lights.brake.style.setProperty('--i', brakeShown.toFixed(3));
+  lights.brake.classList.toggle('on', brakeShown > 0.5);
   requestAnimationFrame(render);
 }
 
@@ -455,6 +527,7 @@ function renderSupport() {
 
 async function startRide() {
   riding = true;
+  state.welcome = { start: performance.now() };
   $('#start').classList.add('hidden');
   try { await document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }); } catch { /* opcional */ }
   keepScreenOn();
