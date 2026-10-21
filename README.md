@@ -6,7 +6,7 @@ PWA que convierte el teléfono en una luz trasera de señalización: triángulos
 | --- | --- |
 | ◀ ■ ▶ | ▶ arriba, ■ al centro, ◀ abajo |
 
-Por defecto se muestra **una señal grande a la vez**: el rectángulo rojo ocupa toda la pantalla y, al girar, cambia por la flecha grande (en peligro, las dos flechas). Mientras se pedalea los controles se esconden y solo queda el botón SOS; un toque en la pantalla los muestra. En Ajustes se puede volver a mostrar las tres figuras juntas.
+Por defecto se muestra **una señal grande a la vez**: el rectángulo rojo ocupa toda la pantalla y, al girar, cambia por la flecha grande (en peligro, las dos flechas). Mientras se pedalea los controles se esconden y el botón SOS queda atenuado; un toque en la pantalla los muestra. En Ajustes se puede volver a mostrar las tres figuras juntas.
 
 La disposición cambia sola según cómo esté montado el teléfono (o se fija en Ajustes).
 
