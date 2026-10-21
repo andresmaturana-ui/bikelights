@@ -423,3 +423,6 @@ body.hud-hidden #controls { opacity: 0; pointer-events: none; }
   text-align: center;
   pointer-events: none;
 }
+
+/* Recorrido terminado: todas las luces apagadas */
+body.ride-ended #signals, body.ride-ended #btn-sos, body.ride-ended #controls { visibility: hidden; }

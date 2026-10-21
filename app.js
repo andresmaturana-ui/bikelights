@@ -54,6 +54,7 @@ const ACTIONS = {
   stop:   { label: 'Apagar señales',       defaults: 'apagar, cancelar, listo' },
   rhythm: { label: 'Cambiar ritmo de la luz roja', defaults: 'cambiar ritmo, ritmo' },
   sound:  { label: 'Prender o apagar el sonido', defaults: 'sonido' },
+  finish: { label: 'Terminar el recorrido', defaults: 'termine recorrido, termine el recorrido, fin del recorrido' },
 };
 
 const DEFAULT_SETTINGS = {
@@ -185,6 +186,9 @@ function doAction(action, source = 'voz') {
       state.turn = null;
       state.hazard = null;
       state.brake = null;
+      break;
+    case 'finish':
+      endRide();
       break;
     case 'sound':
       settings.sound = !settings.sound;
@@ -665,6 +669,7 @@ document.addEventListener('pointerdown', showHud);
 
 async function startRide() {
   riding = true;
+  document.body.classList.remove('ride-ended');
   ensureAudio();
   showHud();
   state.welcome = { start: performance.now() };
@@ -674,6 +679,44 @@ async function startRide() {
   startGps();
   startListening();
 }
+
+// Fin del recorrido: apaga señales, micrófono, GPS y pantalla encendida, y despide al ciclista
+function endRide() {
+  riding = false;
+  state.turn = null;
+  state.hazard = null;
+  state.brake = null;
+  wantListening = false;
+  if (recognition) {
+    recognition.onend = null;
+    try { recognition.abort(); } catch { /* ya detenido */ }
+    recognition = null;
+  }
+  setMicState('Micrófono apagado');
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+  wakeLock?.release().catch(() => {});
+  wakeLock = null;
+  clearTimeout(hudTimer);
+  document.body.classList.remove('hud-hidden');
+  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  document.body.classList.add('ride-ended');
+  $('#finish').classList.remove('hidden');
+  if (settings.sound && 'speechSynthesis' in window) {
+    const msg = new SpeechSynthesisUtterance('¡Qué bueno que llegaste bien!');
+    msg.lang = settings.lang;
+    speechSynthesis.speak(msg);
+  }
+}
+
+$('#btn-finish').addEventListener('click', endRide);
+$('#btn-new-ride').addEventListener('click', () => {
+  $('#finish').classList.add('hidden');
+  document.body.classList.remove('ride-ended');
+  $('#start').classList.remove('hidden');
+});
 
 $('#btn-start').addEventListener('click', startRide);
 $('#btn-start-settings').addEventListener('click', openSettings);
