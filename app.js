@@ -220,11 +220,11 @@ function doAction(action, source = 'voz') {
 // Franjas de cada triángulo y su intensidad mostrada (suavizada como un LED real)
 function buildSegments(svg, side) {
   const group = svg.querySelector('.segs');
-  const width = 92 / SEGMENTS;
+  const width = 100 / SEGMENTS;
   const rects = [];
   for (let k = 0; k < SEGMENTS; k++) {
     // k = 0 es la franja junto al cuadrado; la última es la punta del triángulo
-    const x = side === 'left' ? 96 - (k + 1) * width : 4 + k * width;
+    const x = side === 'left' ? 100 - (k + 1) * width : k * width;
     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     rect.setAttribute('x', (x + 0.4).toFixed(2));
     rect.setAttribute('y', '0');
@@ -245,7 +245,7 @@ const turnLights = {
 const RINGS = 8;
 function buildRings(svg) {
   const group = svg.querySelector('.segs');
-  const step = 46 / RINGS;
+  const step = 50 / RINGS;
   const rects = [];
   const square = (h) => `M${50 - h},${50 - h}H${50 + h}V${50 + h}H${50 - h}Z`;
   for (let k = 0; k < RINGS; k++) {
