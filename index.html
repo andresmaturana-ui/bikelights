@@ -81,27 +81,17 @@
 
   <!-- Pantalla de inicio: el primer toque habilita micrófono, GPS y pantalla encendida -->
   <section id="start" class="start">
-    <!-- Fondo: ilustración del ciclista de noche con la señal en la mochila -->
-    <div class="start-bg" aria-hidden="true"></div>
-    <svg width="0" height="0" class="svg-defs" aria-hidden="true">
-      <filter id="brush" x="-5%" y="-10%" width="110%" height="120%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.04 0.9" numOctaves="2" seed="7"/>
-        <feDisplacementMap in="SourceGraphic" scale="7"/>
-      </filter>
-    </svg>
-
-    <div class="start-hero">
-      <h1 class="poster" aria-label="Tu voz manda. Señalizador">
-        <span class="p-voz">Tu voz</span>
-        <span class="p-manda">manda</span>
-      </h1>
-      <p class="brand">
-        <span class="start-title">Señalizador</span>
-        <span class="start-tag">Que te vean</span>
-      </p>
-      <ul class="cmd-list" id="start-commands"></ul>
-      <p class="start-mini">Celu mirando pa'&nbsp;atrás. Brillo a full.</p>
+    <!-- Afiche de Andrés con la luz de la mochila y las tres señales animadas encima -->
+    <div class="start-poster" role="img" aria-label="Tu voz manda. Señalizador: que te vean. Ciclista de noche con la señal encendida en la mochila.">
+      <div class="fx-pack" aria-hidden="true"><i class="fx-half fx-l"></i><i class="fx-half fx-r"></i></div>
+      <div class="fx-glow fx-glow-pack" aria-hidden="true"></div>
+      <i class="fx-ico fx-ico-left" aria-hidden="true"></i>
+      <i class="fx-ico fx-ico-right" aria-hidden="true"></i>
+      <i class="fx-ico fx-ico-brake" aria-hidden="true"></i>
     </div>
+    <h1 class="sr-only">Señalizador</h1>
+    <ul class="sr-only" id="start-commands"></ul>
+
     <div class="start-actions">
       <button id="btn-start" class="go">A rodar</button>
       <button id="btn-start-settings" class="link">Ajustes y contactos</button>

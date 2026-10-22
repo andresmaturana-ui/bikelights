@@ -431,135 +431,94 @@ body.ride-ended #signals, body.ride-ended #btn-sos, body.ride-ended #controls { 
 .sos-label b { font-size: 24px; }
 .sos-label .ic { width: 26px; height: 26px; }
 
-/* ---------- Pantalla de inicio (afiche urbano: brocha, velocidad y ciudad de noche) ---------- */
+/* ---------- Pantalla de inicio: el afiche de Andrés con las señales animadas ---------- */
 
 @font-face { font-family: "Knewave"; src: url("fonts/knewave.woff2") format("woff2"); font-display: swap; }
-@font-face { font-family: "Barlow Condensed"; font-style: italic; font-weight: 900; src: url("fonts/barlow-condensed-900-italic.woff2") format("woff2"); font-display: swap; }
 @font-face { font-family: "Barlow Condensed"; font-style: italic; font-weight: 800; src: url("fonts/barlow-condensed-800-italic.woff2") format("woff2"); font-display: swap; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
 
 .start {
   --brush: "Knewave", "Arial Black", Impact, sans-serif;
   --display: "Barlow Condensed", "Roboto Condensed", "Arial Narrow", Impact, system-ui, sans-serif;
-  --night: #0a0d14;
   --paper: #f4efe6;
   position: fixed;
   inset: 0;
   z-index: 10;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 14px;
-  padding: calc(14px + env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
-  background: var(--night);
+  align-items: center;
+  gap: 12px;
+  padding: env(safe-area-inset-top) 0 calc(14px + env(safe-area-inset-bottom));
+  background: #000;
   overflow: auto;
-  isolation: isolate;
 }
-.start-bg {
-  position: fixed;
+
+/* El afiche mantiene su proporción 2:3; todas las capas animadas van en % de la imagen */
+.start-poster {
+  position: relative;
+  flex: none;
+  width: min(100%, calc((100dvh - 190px) * 2 / 3));
+  aspect-ratio: 1024 / 1536;
+  background: url("img/afiche.webp") center / 100% 100% no-repeat;
+  /* Funde los bordes con el fondo negro */
+  -webkit-mask: linear-gradient(to bottom, #000 88%, transparent);
+  mask: linear-gradient(to bottom, #000 88%, transparent);
+}
+.start-poster > * { position: absolute; }
+
+/* Luz de la mochila: se enciende del centro hacia los lados, como el intermitente */
+.fx-pack {
   inset: 0;
-  z-index: -1;
-  /* Oscurece arriba para el título y abajo para los comandos; el ciclista queda al medio */
-  background:
-    linear-gradient(to bottom, #000d 0, #0008 22%, transparent 42%, transparent 58%, #000a 78%, #000 100%),
-    url("img/inicio.webp") 62% 40% / cover no-repeat;
+  clip-path: polygon(21.2% 40.5%, 29.1% 37.9%, 35.4% 40.7%, 26.1% 42.8%);
 }
-.svg-defs { position: absolute; }
+.fx-half { position: absolute; top: 37%; height: 7%; background: #050302; animation: fx-reveal 1.6s infinite; }
+.fx-l { left: 20%; width: 8.3%; transform-origin: left center; }
+.fx-r { left: 28.3%; width: 8%; transform-origin: right center; }
+@keyframes fx-reveal {
+  0%, 8% { transform: scaleX(1); opacity: .88; }
+  40%, 72% { transform: scaleX(0); opacity: .88; }
+  73%, 100% { transform: scaleX(1); opacity: .88; }
+}
+.fx-glow {
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #ff9100cc, #ff910033 55%, transparent);
+  mix-blend-mode: screen;
+  animation: fx-glow 1.6s infinite;
+}
+.fx-glow-pack { left: 14%; top: 33%; width: 28%; height: 14%; }
+@keyframes fx-glow { 0%, 20% { opacity: 0; } 40%, 72% { opacity: 1; } 73%, 100% { opacity: 0; } }
 
-.start-hero { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-/* La franja de comandos va abajo, como en el afiche, para dejar a la vista la mochila iluminada */
-.start-hero .cmd-list { order: 2; margin-top: auto; }
-.start-hero .start-mini { order: 1; }
+/* Las tres señales de la derecha parpadean en secuencia: izquierda, derecha, freno */
+.fx-ico {
+  border-radius: 40%;
+  background: radial-gradient(closest-side, #000e 60%, #0000);
+  animation: fx-blink 1.8s steps(1) infinite;
+}
+.fx-ico-left { left: 74.5%; top: 40.6%; width: 6.5%; height: 5.6%; }
+.fx-ico-right { left: 78.9%; top: 49.6%; width: 6.5%; height: 5.6%; animation-delay: .6s; }
+.fx-ico-brake { left: 72.6%; top: 58.2%; width: 13.4%; height: 6%; animation-delay: 1.2s; }
+@keyframes fx-blink { 0%, 33% { opacity: 0; } 34%, 100% { opacity: .85; } }
 
-.poster {
-  margin: 0;
+.start-actions {
   display: flex;
   flex-direction: column;
-  font-family: var(--brush);
-  font-weight: 400;
-  text-transform: uppercase;
-  line-height: .82;
-  margin-top: .25em;
-  transform: rotate(-6deg);
-  transform-origin: left center;
-  filter: url(#brush);
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: -40px;
+  padding: 0 max(18px, env(safe-area-inset-right)) 0 max(18px, env(safe-area-inset-left));
+  z-index: 1;
 }
-.p-voz {
-  font-size: clamp(64px, 21vw, 150px);
-  color: var(--paper);
-  text-shadow: 0 0 1px var(--paper), 4px 6px 0 #000;
-}
-.p-manda {
-  align-self: flex-end;
-  margin-top: -.04em;
-  font-size: clamp(70px, 23vw, 170px);
-  color: var(--orange);
-  text-shadow: 4px 6px 0 #000, 0 0 30px #ff910055;
-}
-
-.brand {
-  margin: 4px 0 0;
-  align-self: flex-end;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  transform: rotate(-3deg);
-}
-.start-title {
-  font: italic 900 clamp(34px, 11vw, 64px)/.9 var(--display);
-  text-transform: uppercase;
-  letter-spacing: .01em;
-  color: var(--paper);
-  text-shadow: 3px 3px 0 #000;
-  white-space: nowrap;
-  padding-bottom: 4px;
-  background: linear-gradient(90deg, transparent 0 8%, var(--orange) 8% 100%) bottom / 100% 4px no-repeat;
-}
-.start-tag {
-  font: italic 900 clamp(20px, 6.5vw, 34px)/1 var(--display);
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  color: var(--orange);
-}
-
-.cmd-list {
-  list-style: none;
-  margin-inline: calc(-1 * max(18px, env(safe-area-inset-left)));
-  padding: 14px max(18px, env(safe-area-inset-left)) 12px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  background: var(--orange);
-  color: #000;
-  clip-path: polygon(0 12%, 100% 0, 100% 88%, 0 100%);
-}
-.cmd-list li { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; text-align: center; padding: 4px 2px; }
-.cmd-list li + li { border-left: 2px solid #0006; }
-.cmd-list svg { width: 34px; height: 34px; color: #000; animation: cmd-blink 1.6s steps(1) infinite; }
-.cmd-list li:nth-child(2) svg { animation-delay: .53s; }
-.cmd-list li:nth-child(3) svg { animation-delay: 1.06s; }
-.cmd-list span { font: 400 15px/1 var(--brush); text-transform: uppercase; }
-.cmd-list b { display: block; font: italic 900 15px/1.05 var(--display); text-transform: uppercase; overflow-wrap: anywhere; }
-.cmd-rest span { font-size: 17px; }
-.cmd-rest small { display: block; font: italic 900 13px/1.05 var(--display); text-transform: uppercase; }
-@keyframes cmd-blink { 0%, 55% { opacity: 1; } 56%, 100% { opacity: .3; } }
-
-.start-mini {
-  margin: 14px 0 0;
-  align-self: flex-end;
-  font: italic 800 15px/1.2 var(--display);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  color: var(--paper);
-  padding-bottom: 5px;
-  background: linear-gradient(var(--orange), var(--orange)) right bottom / 70% 3px no-repeat;
-  text-shadow: 0 1px 3px #000;
-}
-
-.start-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
 .go {
   width: min(420px, 100%);
-  height: 80px;
+  height: 78px;
   border: 0;
-  background: var(--paper);
+  background: var(--orange);
   color: #000;
   font: 400 40px/1 var(--brush);
   text-transform: uppercase;
@@ -568,22 +527,20 @@ body.ride-ended #signals, body.ride-ended #btn-sos, body.ride-ended #controls { 
   box-shadow: inset 0 -6px 0 #0003;
   animation: go-pulse 1.8s ease-in-out infinite;
 }
-.go:active { background: var(--orange); }
-@keyframes go-pulse { 0%, 100% { filter: none; } 50% { filter: drop-shadow(0 0 14px #fff8); } }
+.go:active { background: var(--paper); }
+@keyframes go-pulse { 0%, 100% { filter: none; } 50% { filter: drop-shadow(0 0 14px var(--orange)); } }
 .link { background: none; border: 0; color: #d9d4cc; font: italic 800 15px var(--display); text-transform: uppercase; letter-spacing: .1em; text-decoration: underline; text-underline-offset: 4px; padding: 8px; }
-.start .support { max-width: 420px; text-align: left; background: #000a; padding: 8px 10px; border-radius: 8px; }
+.start .support { max-width: 420px; text-align: left; }
 
 @media (prefers-reduced-motion: reduce) {
-  .go, .cmd-list svg { animation: none; }
+  .go, .fx-half, .fx-glow, .fx-ico { animation: none; }
+  .fx-half, .fx-ico { opacity: 0; }
+  .fx-glow { opacity: 1; }
 }
-@media (orientation: landscape) and (max-height: 500px) {
-  .start-hero { gap: 2px; }
-  .p-voz { font-size: 56px; }
-  .p-manda { font-size: 64px; }
-  .start-title { font-size: 32px; }
-  .cmd-list { margin: 0; clip-path: none; }
-  .cmd-list svg { width: 24px; height: 24px; }
-  .start-mini { display: none; }
+@media (orientation: landscape) and (max-height: 600px) {
+  .start { flex-direction: row; justify-content: center; padding: 0 max(18px, env(safe-area-inset-right)) 0 max(18px, env(safe-area-inset-left)); }
+  .start-poster { width: auto; height: 100dvh; -webkit-mask: none; mask: none; }
+  .start-actions { margin-top: 0; width: min(380px, 45vw); padding: 0; }
 }
 
 /* ---------- Dibujos en canvas (giro, freno y peligro a elección) ---------- */
