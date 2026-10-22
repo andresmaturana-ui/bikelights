@@ -491,7 +491,14 @@ function micIdleText() {
 
 // Modo «al tocar»: escucha una frase y suelta el micrófono para que vuelva la música
 function listenOnce() {
-  if (!SpeechRecognition || recognition) return;
+  if (!SpeechRecognition) {
+    showHeard('Este navegador no reconoce voz', 3000);
+    return;
+  }
+  if (recognition) return;
+  showHud();
+  clearTimeout(hudTimer);
+  hudTimer = setTimeout(() => document.body.classList.add('hud-hidden'), 9000);
   oneShot = true;
   startListening();
   clearTimeout(oneShotTimer);
@@ -512,9 +519,11 @@ function startListening() {
   recognition.interimResults = true;
   firedPerResult = new Map();
 
+  let heardCommand = false;
   recognition.onstart = () => {
     setMicState('Escuchando', 'listening');
     restartDelay = 250;
+    if (oneShot) showHeard('Te escucho: di tu comando', 0);
   };
 
   recognition.onresult = (event) => {
@@ -527,11 +536,14 @@ function startListening() {
         if (now - (lastFired[action] || 0) > 1200) {
           lastFired[action] = now;
           doAction(action, 'voz');
+          heardCommand = true;
           showHeard(`«${transcript.trim()}»: ${ACTIONS[action].label}`);
           if (oneShot) try { recognition.stop(); } catch { /* ya detenido */ }
         }
       }
       if (actions.length > done) firedPerResult.set(i, actions.length);
+      // En modo «al tocar» se muestra lo que se va escuchando, para saber si el micrófono responde
+      if (oneShot && !heardCommand) showHeard(`«${transcript.trim()}»`, 0);
     }
   };
 
@@ -543,6 +555,9 @@ function startListening() {
       setMicState('Voz sin conexión', 'error');
       restartDelay = Math.min(restartDelay * 2, 5000);
     }
+    if (oneShot) showHeard(event.error === 'not-allowed' || event.error === 'service-not-allowed'
+      ? 'Safari no dio permiso al micrófono: revísalo en Ajustes > Safari > Micrófono'
+      : `No te escuché (${event.error}). Toca y repite`, 4000);
   };
 
   recognition.onend = () => {
@@ -550,6 +565,7 @@ function startListening() {
     if (oneShot) {
       oneShot = false;
       clearTimeout(oneShotTimer);
+      if (!heardCommand && $('#heard').textContent.startsWith('Te escucho')) showHeard('No entendí. Toca y repite', 2500);
       if (!$('#mic-state').classList.contains('error')) setMicState(micIdleText());
       return;
     }
@@ -562,8 +578,9 @@ function startListening() {
 
   try {
     recognition.start();
-  } catch {
+  } catch (err) {
     recognition = null;
+    if (oneShot) showHeard(`No se pudo abrir el micrófono (${err.name})`, 4000);
     oneShot = false;
   }
 }
@@ -735,8 +752,9 @@ function showHud() {
 }
 document.addEventListener('pointerdown', showHud);
 
-// Modo «al tocar»: un toque en la señal abre el micrófono por unos segundos
-$('#signals').addEventListener('pointerdown', () => {
+// Modo «al tocar»: un toque en la señal abre el micrófono por unos segundos.
+// Va en "click" porque Safari solo deja abrir el micrófono al terminar el toque.
+$('#signals').addEventListener('click', () => {
   if (riding && settings.voiceMode === 'toque') listenOnce();
 });
 
