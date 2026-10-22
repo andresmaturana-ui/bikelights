@@ -1,5 +1,5 @@
 // Caché de la app para que funcione sin conexión (el reconocimiento de voz puede requerir internet)
-const CACHE = 'senalizador-v23';
+const CACHE = 'senalizador-v24';
 const ASSETS = [
   './',
   'index.html',
@@ -12,6 +12,7 @@ const ASSETS = [
   'icons/apple-touch-icon.png',
   'fonts/knewave.woff2',
   'img/afiche.webp',
+  'img/guia.webp',
   'fonts/barlow-condensed-800-italic.woff2',
 ];
 
