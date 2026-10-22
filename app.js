@@ -62,6 +62,7 @@ const DEFAULT_SETTINGS = {
   lang: 'es-CL',
   vibrate: true,
   sound: true,
+  voice: true,
   volume: 0.6,
   turnSeconds: 10,
   turnPattern: 'secuencial',
@@ -373,6 +374,10 @@ function stopSounds() {
 function ensureAudio() {
   const Ctx = window.AudioContext || window.webkitAudioContext;
   if (!Ctx) return null;
+  // iOS/Safari: "ambient" mezcla los sonidos con la música (Spotify) en vez de pausarla
+  if (navigator.audioSession) {
+    try { navigator.audioSession.type = 'ambient'; } catch { /* no soportado */ }
+  }
   if (!audioCtx) audioCtx = new Ctx();
   if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
   return audioCtx;
@@ -668,7 +673,7 @@ function renderSupport() {
     const li = document.createElement('li');
     li.className = 'warn';
     li.innerHTML = icon('alert', 'ic-sm');
-    li.append('En iPhone el reconocimiento de voz se corta con frecuencia y puede pausar la música.');
+    li.append('En iPhone el micrófono pausa la música (límite de iOS). Para escuchar Spotify, apaga «Usar la voz» en Ajustes y usa los botones.');
     list.append(li);
   }
   if (!settings.contacts.length) {
@@ -704,7 +709,8 @@ async function startRide() {
   try { await document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }); } catch { /* opcional */ }
   keepScreenOn();
   startGps();
-  startListening();
+  if (settings.voice) startListening();
+  else setMicState('Voz apagada');
 }
 
 // Fin del recorrido: apaga señales, micrófono, GPS y pantalla encendida, y despide al ciclista
