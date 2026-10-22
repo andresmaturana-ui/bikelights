@@ -1,4 +1,4 @@
-Knewave (Tyler Finck) y Barlow Condensed (Jeremy Tribby), SIL Open Font License 1.1.
+Knewave (Tyler Finck) y Barlow Condensed 800 itálica (Jeremy Tribby), SIL Open Font License 1.1.
 Archivos tomados de @fontsource/knewave y @fontsource/barlow-condensed.
 
 Copyright (c) 2011 by Tyler Finck. All rights reserved.
