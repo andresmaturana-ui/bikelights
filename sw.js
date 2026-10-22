@@ -1,5 +1,5 @@
 // Caché de la app para que funcione sin conexión (el reconocimiento de voz puede requerir internet)
-const CACHE = 'senalizador-v20';
+const CACHE = 'senalizador-v21';
 const ASSETS = [
   './',
   'index.html',
@@ -10,6 +10,9 @@ const ASSETS = [
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
+  'fonts/knewave.woff2',
+  'fonts/barlow-condensed-900-italic.woff2',
+  'fonts/barlow-condensed-800-italic.woff2',
 ];
 
 self.addEventListener('install', (event) => {

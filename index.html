@@ -80,27 +80,26 @@
 
   <!-- Pantalla de inicio: el primer toque habilita micrófono, GPS y pantalla encendida -->
   <section id="start" class="start">
-    <div class="tape" aria-hidden="true"></div>
+    <!-- Fondo: líneas de velocidad y ciudad de noche -->
+    <canvas id="start-fx" class="start-fx" aria-hidden="true"></canvas>
+    <svg id="start-city" class="start-city" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
+    <svg width="0" height="0" class="svg-defs" aria-hidden="true">
+      <filter id="brush" x="-5%" y="-10%" width="110%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.04 0.9" numOctaves="2" seed="7"/>
+        <feDisplacementMap in="SourceGraphic" scale="7"/>
+      </filter>
+    </svg>
+
     <div class="start-hero">
-      <div class="start-demo" aria-hidden="true">
-        <svg viewBox="0 0 300 110">
-          <g class="d-left">
-            <polygon points="6,55 40,30 40,80" class="d-seg s1"/>
-            <polygon points="44,27 64,13 64,97 44,83" class="d-seg s2"/>
-            <polygon points="68,10 88,0 88,110 68,100" class="d-seg s3"/>
-          </g>
-          <rect x="104" y="12" width="92" height="86" class="d-brake"/>
-          <g class="d-right">
-            <polygon points="294,55 260,30 260,80" class="d-seg s1"/>
-            <polygon points="256,27 236,13 236,97 256,83" class="d-seg s2"/>
-            <polygon points="232,10 212,0 212,110 232,100" class="d-seg s3"/>
-          </g>
-        </svg>
-        <span class="sticker">TU VOZ MANDA</span>
-      </div>
-      <h1 class="start-title">Señalizador</h1>
-      <p class="start-tag">Que te vean.</p>
-      <p class="start-sub" id="start-commands"></p>
+      <h1 class="poster" aria-label="Tu voz manda. Señalizador">
+        <span class="p-voz">Tu voz</span>
+        <span class="p-manda">manda</span>
+      </h1>
+      <p class="brand">
+        <span class="start-title">Señalizador</span>
+        <span class="start-tag">Que te vean</span>
+      </p>
+      <ul class="cmd-list" id="start-commands"></ul>
       <p class="start-mini">Celu mirando pa'&nbsp;atrás. Brillo a full.</p>
     </div>
     <div class="start-actions">
@@ -108,7 +107,6 @@
       <button id="btn-start-settings" class="link">Ajustes y contactos</button>
       <ul id="support" class="support"></ul>
     </div>
-    <div class="tape" aria-hidden="true"></div>
   </section>
 
   <!-- Guía inicial: se muestra la primera vez que se abre la app -->
