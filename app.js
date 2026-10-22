@@ -5,7 +5,7 @@
    ========================================================= */
 
 const STORAGE_KEY = 'senalizador.settings.v1';
-const SETTINGS_VERSION = 3;
+const SETTINGS_VERSION = 4;
 const OFF = 0.08; // intensidad de una luz "apagada": se ve la silueta, pero tenue
 
 // ---------- Ritmos ----------
@@ -66,7 +66,7 @@ const DEFAULT_SETTINGS = {
   sound: true,
   // siempre: el micrófono escucha todo el recorrido; toque: escucha 5 s al tocar la pantalla
   // (en iPhone así la música solo se pausa mientras se habla); no: solo botones y control Bluetooth
-  voiceMode: IS_IOS ? 'toque' : 'siempre',
+  voiceMode: 'siempre',
   volume: 0.6,
   turnSeconds: 10,
   turnPattern: 'secuencial',
@@ -101,6 +101,8 @@ function loadSettings() {
       if (saved.voice === false) saved.voiceMode = 'no';
       delete saved.voice;
     }
+    // v4: Andrés prefiere que la voz funcione aunque pause la música; vuelve a «siempre»
+    if ((saved.version || 1) < 4 && saved.voiceMode === 'toque') saved.voiceMode = 'siempre';
     saved.version = SETTINGS_VERSION;
     return {
       ...DEFAULT_SETTINGS,
