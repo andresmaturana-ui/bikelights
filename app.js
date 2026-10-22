@@ -1039,75 +1039,9 @@ function renderSupport() {
   $('#start-commands').innerHTML = [
     ['left', 'Grita'], ['right', 'Grita'], ['brake', 'Grita'],
   ].map(([a, verb]) => `<li>${icon(a, 'ic')}<span>${verb}<b>${esc(up(a))}</b></span></li>`).join('')
-    + '<li class="cmd-rest"><span>La luz hace el resto</span></li>';
+    + `<li class="cmd-rest">${icon('sun', 'ic')}<span>La luz<small>hace el resto</small></span></li>`;
 }
 
-/* ---------- Fondo de la pantalla de inicio ---------- */
-
-// Edificios con ventanas encendidas, generados una vez
-(function buildCity() {
-  const svg = $('#start-city');
-  let seed = 11;
-  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  const parts = [];
-  let x = -10;
-  while (x < 410) {
-    const w = 26 + rnd() * 40;
-    const h = 90 + rnd() * 190;
-    const y = 300 - h;
-    parts.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="#05070c"/>`);
-    for (let wy = y + 8; wy < 290; wy += 9) {
-      for (let wx = x + 5; wx < x + w - 5; wx += 7) {
-        if (rnd() < 0.32) parts.push(`<rect x="${wx.toFixed(1)}" y="${wy.toFixed(1)}" width="3" height="4" fill="${rnd() < 0.8 ? '#ffb347' : '#fff3d6'}" opacity="${(0.35 + rnd() * 0.6).toFixed(2)}"/>`);
-      }
-    }
-    x += w + 2 + rnd() * 6;
-  }
-  svg.innerHTML = parts.join('');
-})();
-
-// Líneas de velocidad que salen desde el fondo de la calle, como en un afiche de cómic
-(function speedLines() {
-  const canvas = $('#start-fx');
-  const ctx = canvas.getContext('2d');
-  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const COLORS = ['255,145,0', '255,145,0', '244,239,230', '255,60,0'];
-  const streaks = Array.from({ length: 120 }, (_, i) => ({
-    a: Math.random() * Math.PI * 2,
-    d: Math.random(),
-    v: 0.25 + Math.random() * 0.6,
-    len: 0.08 + Math.random() * 0.22,
-    wdt: 1.5 + Math.random() * 6,
-    c: COLORS[i % COLORS.length],
-  }));
-  let last = performance.now();
-
-  function frame(now) {
-    if ($('#start').classList.contains('hidden')) { last = now; requestAnimationFrame(frame); return; }
-    const dt = Math.min(50, now - last) / 1000;
-    last = now;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
-    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-    ctx.clearRect(0, 0, w, h);
-    // Punto de fuga en la calle, abajo a la derecha del título
-    const cx = w * 0.62, cy = h * 0.62, r = Math.hypot(w, h);
-    for (const s of streaks) {
-      if (!still) s.d += s.v * dt;
-      if (s.d > 1.2) { s.d = 0.05; s.a = Math.random() * Math.PI * 2; }
-      const r0 = r * s.d * s.d, r1 = r * Math.min(1.4, (s.d + s.len) * (s.d + s.len));
-      const alpha = Math.min(0.8, s.d * 1.1);
-      ctx.strokeStyle = `rgba(${s.c},${alpha.toFixed(3)})`;
-      ctx.lineWidth = s.wdt * dpr * (0.5 + s.d);
-      ctx.beginPath();
-      ctx.moveTo(cx + Math.cos(s.a) * r0, cy + Math.sin(s.a) * r0);
-      ctx.lineTo(cx + Math.cos(s.a) * r1, cy + Math.sin(s.a) * r1);
-      ctx.stroke();
-    }
-    if (!still) requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-})();
 
 // Mientras se pedalea los controles se esconden para dejar toda la pantalla a la señal.
 // El botón SOS queda siempre visible; un toque en la pantalla muestra los controles.

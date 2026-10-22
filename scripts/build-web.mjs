@@ -2,7 +2,7 @@
 // En la app se agrega el runtime de Capacitor, que da acceso a la voz nativa.
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
-const FILES = ['index.html', 'app.js', 'styles.css', 'manifest.webmanifest', 'icons', 'fonts'];
+const FILES = ['index.html', 'app.js', 'styles.css', 'manifest.webmanifest', 'icons', 'fonts', 'img'];
 
 rmSync('www', { recursive: true, force: true });
 mkdirSync('www');

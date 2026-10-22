@@ -27,7 +27,7 @@ jobs:
       - name: Preparar sitio
         run: |
           mkdir _site
-          cp -r index.html app.js styles.css sw.js manifest.webmanifest icons fonts _site/
+          cp -r index.html app.js styles.css sw.js manifest.webmanifest icons fonts img _site/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
