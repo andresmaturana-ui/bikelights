@@ -1,0 +1,9 @@
+{
+  "appId": "cl.andresmaturana.senalizador",
+  "appName": "Señalizador",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#000000"
+  }
+}

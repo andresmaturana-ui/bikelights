@@ -23,8 +23,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # Solo la app web; el proyecto de iPhone (ios/) no se publica
+      - name: Preparar sitio
+        run: |
+          mkdir _site
+          cp -r index.html app.js styles.css sw.js manifest.webmanifest icons fonts img _site/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
