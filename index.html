@@ -167,8 +167,15 @@
           </select>
         </label>
         <label class="row"><input type="checkbox" name="vibrate"> Vibrar al reconocer un comando</label>
-        <label class="row"><input type="checkbox" name="voice"> Usar la voz (micrófono)</label>
-        <p class="small">En iPhone, mientras el micrófono escucha, iOS pausa la música. Si quieres Spotify de fondo, apaga la voz y usa los botones.</p>
+        <label>Micrófono
+          <select name="voiceMode">
+            <option value="siempre">Siempre escuchando</option>
+            <option value="toque">Al tocar la pantalla (5 s)</option>
+            <option value="no">Apagado: solo botones o control Bluetooth</option>
+          </select>
+        </label>
+        <p class="small">En iPhone, mientras el micrófono escucha, iOS pausa la música y el micrófono queda tomado si entra una llamada. «Al tocar» solo lo abre mientras hablas. Con «Apagado» la música nunca se corta.</p>
+        <p class="small">Control Bluetooth de manubrio (tipo teclado o presentador): flecha izquierda o Re Pág gira a la izquierda, flecha derecha o Av Pág a la derecha, flecha abajo, espacio o Enter frena, flecha arriba es peligro y Esc apaga.</p>
         <label class="row"><input type="checkbox" name="sound"> Sonido al señalizar (tic-tac) y al frenar</label>
         <label>Volumen del sonido
           <input type="range" name="volume" min="0.1" max="1" step="0.1">

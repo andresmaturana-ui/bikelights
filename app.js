@@ -5,7 +5,7 @@
    ========================================================= */
 
 const STORAGE_KEY = 'senalizador.settings.v1';
-const SETTINGS_VERSION = 2;
+const SETTINGS_VERSION = 3;
 const OFF = 0.08; // intensidad de una luz "apagada": se ve la silueta, pero tenue
 
 // ---------- Ritmos ----------
@@ -44,6 +44,8 @@ const TURN_PATTERNS = {
 // Al comenzar el recorrido: animación de bienvenida, como los autos al desbloquearse
 const WELCOME_MS = 1600;
 
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
 // ---------- Comandos ----------
 
 const ACTIONS = {
@@ -62,7 +64,9 @@ const DEFAULT_SETTINGS = {
   lang: 'es-CL',
   vibrate: true,
   sound: true,
-  voice: true,
+  // siempre: el micrófono escucha todo el recorrido; toque: escucha 5 s al tocar la pantalla
+  // (en iPhone así la música solo se pausa mientras se habla); no: solo botones y control Bluetooth
+  voiceMode: IS_IOS ? 'toque' : 'siempre',
   volume: 0.6,
   turnSeconds: 10,
   turnPattern: 'secuencial',
@@ -91,6 +95,11 @@ function loadSettings() {
     if ((saved.version || 1) < 2) {
       delete saved.brakeSeconds;
       delete saved.brakeEffect;
+    }
+    // v3: «Usar la voz» (sí/no) pasa a ser un modo; en iPhone se parte en «al tocar»
+    if ((saved.version || 1) < 3) {
+      if (saved.voice === false) saved.voiceMode = 'no';
+      delete saved.voice;
     }
     saved.version = SETTINGS_VERSION;
     return {
@@ -379,7 +388,8 @@ function ensureAudio() {
     try { navigator.audioSession.type = 'ambient'; } catch { /* no soportado */ }
   }
   if (!audioCtx) audioCtx = new Ctx();
-  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  // iOS deja el audio en "interrupted" después de una llamada
+  if (audioCtx.state !== 'running') audioCtx.resume().catch(() => {});
   return audioCtx;
 }
 
@@ -441,6 +451,8 @@ let wantListening = false;
 let firedPerResult = new Map(); // índice del resultado -> cuántos comandos ya se ejecutaron
 let lastFired = {};             // acción -> momento, para evitar duplicados
 let restartDelay = 250;
+let oneShot = false;            // escucha de una sola frase (modo «al tocar»)
+let oneShotTimer = null;
 
 function findCommands(text) {
   const padded = ` ${normalize(text)} `;
@@ -471,8 +483,23 @@ function setMicState(text, cls = '') {
   el.className = `pill ${cls}`;
 }
 
+function micIdleText() {
+  if (settings.voiceMode === 'toque') return 'Toca para hablar';
+  if (settings.voiceMode === 'no') return 'Voz apagada';
+  return 'Micrófono apagado';
+}
+
+// Modo «al tocar»: escucha una frase y suelta el micrófono para que vuelva la música
+function listenOnce() {
+  if (!SpeechRecognition || recognition) return;
+  oneShot = true;
+  startListening();
+  clearTimeout(oneShotTimer);
+  oneShotTimer = setTimeout(() => { try { recognition?.stop(); } catch { /* ya detenido */ } }, 5000);
+}
+
 function startListening() {
-  wantListening = true;
+  wantListening = !oneShot;
   if (!SpeechRecognition) {
     setMicState('Voz no disponible', 'error');
     return;
@@ -481,7 +508,7 @@ function startListening() {
 
   recognition = new SpeechRecognition();
   recognition.lang = settings.lang;
-  recognition.continuous = true;
+  recognition.continuous = !oneShot;
   recognition.interimResults = true;
   firedPerResult = new Map();
 
@@ -501,6 +528,7 @@ function startListening() {
           lastFired[action] = now;
           doAction(action, 'voz');
           showHeard(`«${transcript.trim()}»: ${ACTIONS[action].label}`);
+          if (oneShot) try { recognition.stop(); } catch { /* ya detenido */ }
         }
       }
       if (actions.length > done) firedPerResult.set(i, actions.length);
@@ -519,6 +547,12 @@ function startListening() {
 
   recognition.onend = () => {
     recognition = null;
+    if (oneShot) {
+      oneShot = false;
+      clearTimeout(oneShotTimer);
+      if (!$('#mic-state').classList.contains('error')) setMicState(micIdleText());
+      return;
+    }
     if (wantListening && document.visibilityState === 'visible') {
       setTimeout(() => { if (wantListening) startListening(); }, restartDelay);
     } else if (!wantListening && !$('#mic-state').classList.contains('error')) {
@@ -530,6 +564,7 @@ function startListening() {
     recognition.start();
   } catch {
     recognition = null;
+    oneShot = false;
   }
 }
 
@@ -538,6 +573,7 @@ function restartListening() {
     recognition.onend = null;
     try { recognition.abort(); } catch { /* ya detenido */ }
     recognition = null;
+    oneShot = false;
   }
   if (wantListening) startListening();
 }
@@ -640,6 +676,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   if (riding) {
     keepScreenOn();
+    if (audioCtx && settings.sound) ensureAudio();
     if (wantListening && !recognition) startListening();
   }
   if (emergency.awaitingReturn) scheduleEmergencyCall();
@@ -654,7 +691,6 @@ function isStandalone() {
 }
 
 function renderSupport() {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const items = [
     [!!SpeechRecognition, 'Reconocimiento de voz', 'Este navegador no reconoce voz: usa los botones o prueba Chrome en Android.'],
     ['wakeLock' in navigator, 'Pantalla siempre encendida', 'No se puede impedir que la pantalla se apague: desactiva el bloqueo automático en los ajustes del teléfono.'],
@@ -669,11 +705,11 @@ function renderSupport() {
     if (!ok) li.className = 'warn';
     list.append(li);
   }
-  if (isIOS) {
+  if (IS_IOS && settings.voiceMode === 'siempre') {
     const li = document.createElement('li');
     li.className = 'warn';
     li.innerHTML = icon('alert', 'ic-sm');
-    li.append('En iPhone el micrófono pausa la música (límite de iOS). Para escuchar Spotify, apaga «Usar la voz» en Ajustes y usa los botones.');
+    li.append('En iPhone el micrófono siempre activo pausa la música y choca con las llamadas. Usa la voz «al tocar» o un control Bluetooth (Ajustes).');
     list.append(li);
   }
   if (!settings.contacts.length) {
@@ -699,6 +735,28 @@ function showHud() {
 }
 document.addEventListener('pointerdown', showHud);
 
+// Modo «al tocar»: un toque en la señal abre el micrófono por unos segundos
+$('#signals').addEventListener('pointerdown', () => {
+  if (riding && settings.voiceMode === 'toque') listenOnce();
+});
+
+// Control Bluetooth de manubrio: los controles remotos baratos (tipo teclado o
+// presentador) mandan flechas, Av/Re Pág, Enter o espacio
+const KEY_ACTIONS = {
+  ArrowLeft: 'left', PageUp: 'left',
+  ArrowRight: 'right', PageDown: 'right',
+  ArrowDown: 'brake', ' ': 'brake', Enter: 'brake',
+  ArrowUp: 'hazard',
+  Escape: 'stop', Backspace: 'stop',
+};
+document.addEventListener('keydown', (e) => {
+  if (!riding || dialog.open || e.target.matches?.('input, textarea, select')) return;
+  const action = KEY_ACTIONS[e.key];
+  if (!action) return;
+  e.preventDefault();
+  if (!e.repeat) doAction(action, 'control');
+});
+
 async function startRide() {
   riding = true;
   document.body.classList.remove('ride-ended');
@@ -709,8 +767,8 @@ async function startRide() {
   try { await document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }); } catch { /* opcional */ }
   keepScreenOn();
   startGps();
-  if (settings.voice) startListening();
-  else setMicState('Voz apagada');
+  if (settings.voiceMode === 'siempre') startListening();
+  else setMicState(micIdleText());
 }
 
 // Fin del recorrido: apaga señales, micrófono, GPS y pantalla encendida, y despide al ciclista
@@ -724,6 +782,7 @@ function endRide() {
     recognition.onend = null;
     try { recognition.abort(); } catch { /* ya detenido */ }
     recognition = null;
+    oneShot = false;
   }
   setMicState('Micrófono apagado');
   if (watchId !== null) {
@@ -1022,7 +1081,13 @@ form.addEventListener('submit', () => {
   saveSettings();
   applyLayout();
   renderSupport();
-  if (langChanged) restartListening();
+  if (riding) {
+    // Al cambiar el modo de voz en pleno recorrido, se suelta o se abre el micrófono
+    wantListening = settings.voiceMode === 'siempre';
+    if (langChanged || !wantListening) restartListening();
+    else if (!recognition) startListening();
+    if (!wantListening) setMicState(micIdleText());
+  } else if (langChanged) restartListening();
 });
 
 $('#btn-add-contact').addEventListener('click', () => $('#contacts').append(contactRow()));
