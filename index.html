@@ -37,6 +37,7 @@
 
   <!-- Panel de luces: triángulo izquierdo, cuadrado de freno, triángulo derecho -->
   <main id="signals" aria-label="Luces de señalización">
+    <canvas id="art" aria-hidden="true"></canvas>
     <div class="panel">
       <svg class="light turn left" id="light-left" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Giro a la izquierda">
         <defs><clipPath id="clip-left"><polygon points="0,50 100,0 100,100" /></clipPath></defs>
@@ -187,14 +188,23 @@
         <label>Duración del intermitente (segundos)
           <input type="number" name="turnSeconds" min="3" max="30" step="1">
         </label>
+        <label>Dibujo del giro
+          <select name="turnStyle" id="turn-style"></select>
+        </label>
         <label>Ritmo del intermitente
           <select name="turnPattern" id="turn-pattern"></select>
+        </label>
+        <label>Dibujo de peligro
+          <select name="hazardStyle" id="hazard-style"></select>
         </label>
         <label>Duración de la luz de freno (segundos)
           <input type="number" name="brakeSeconds" min="2" max="15" step="1">
         </label>
         <label>Subida de intensidad del freno, de 40 % a 100 % (segundos)
           <input type="number" name="brakeRampSeconds" min="0" max="5" step="0.5">
+        </label>
+        <label>Dibujo del freno
+          <select name="brakeStyle" id="brake-style"></select>
         </label>
         <label>Efecto de freno
           <select name="brakeEffect" id="brake-effect"></select>
@@ -207,6 +217,13 @@
           <select name="display">
             <option value="una">Una señal grande a la vez</option>
             <option value="tres">Las tres figuras juntas</option>
+          </select>
+        </label>
+        <p class="small">Los dibujos se usan con «Una señal grande a la vez».</p>
+        <label>Botones
+          <select name="buttonStyle">
+            <option value="tarjetas">Tarjetas</option>
+            <option value="circulos">Círculos</option>
           </select>
         </label>
         <label>Disposición

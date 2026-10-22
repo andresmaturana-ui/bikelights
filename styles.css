@@ -539,3 +539,18 @@ body.ride-ended #signals, body.ride-ended #btn-sos, body.ride-ended #controls { 
   .start-title { font-size: 44px; }
   .start-sub, .start-mini { display: none; }
 }
+
+/* ---------- Dibujos en canvas (giro, freno y peligro a elección) ---------- */
+#art { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
+body.display-una.art-on #art { display: block; }
+body.display-una.art-on .panel { visibility: hidden; }
+
+/* ---------- Botones redondos ---------- */
+body.btn-circulos .ctl { background: none; border: 0; border-radius: 0; gap: 6px; }
+body.btn-circulos .ctl .ic {
+  box-sizing: content-box; width: 28px; height: 28px; padding: 14px;
+  border-radius: 50%; background: #141210; border: 2px solid currentColor;
+}
+body.btn-circulos .ctl-stop .ic { color: var(--fg); }
+body.btn-circulos .ctl:active { background: none; }
+body.btn-circulos .ctl:active .ic { background: #2a2622; transform: scale(.94); }

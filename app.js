@@ -73,6 +73,10 @@ const DEFAULT_SETTINGS = {
   brakeSeconds: 4,
   brakeRampSeconds: 1,
   brakeEffect: 'anillos',
+  turnStyle: 'triangulo',
+  brakeStyle: 'anillos',
+  hazardStyle: 'triangulos',
+  buttonStyle: 'tarjetas',
   idlePattern: 'lento',
   gpsCancel: true,
   layout: 'auto',
@@ -287,6 +291,219 @@ const BRAKE_EFFECTS = {
 };
 let lastFrame = performance.now();
 
+/* ---------- Dibujos de las señales ----------
+   El dibujo de cada señal se elige en Ajustes. El primero de cada lista es el SVG
+   original; los demás se pintan en un canvas a pantalla completa. Cada dibujo recibe
+   lv(k, n): la intensidad del elemento k de n (0 = el primero en encenderse), que
+   sale del ritmo elegido, así el tic-tac y los pitidos siguen sincronizados. */
+
+const ORANGE_RGB = '255,145,0';
+const RED_RGB = '255,0,0';
+const fillLv = (ctx, rgb, v) => { ctx.fillStyle = `rgba(${rgb},${v.toFixed(3)})`; };
+// Franja k contada desde la derecha, en píxeles enteros para que no queden costuras
+const stripe = (w, sw, k) => {
+  const x = Math.round(w - (k + 1) * sw);
+  return [x, Math.round(w - k * sw) - x];
+};
+
+// Dibuja mirando a la izquierda; para la derecha se refleja
+function facing(ctx, w, side, draw) {
+  ctx.save();
+  if (side === 'right') { ctx.translate(w, 0); ctx.scale(-1, 1); }
+  draw();
+  ctx.restore();
+}
+
+const TURN_STYLES = {
+  triangulo: { label: 'Triángulo secuencial' },
+  chevrons: { label: 'Chevrons', draw(ctx, w, h, lv) {
+    const n = 3, cw = w / 3.2, th = cw * 0.42;
+    for (let k = 0; k < n; k++) {
+      // k = 0 es el chevron más cercano al centro de la pantalla
+      const x = w - (k + 1) * (w / n) + (w / n - cw) / 2 + cw * 0.15;
+      fillLv(ctx, ORANGE_RGB, lv(k, n));
+      ctx.beginPath();
+      ctx.moveTo(x + cw, h * 0.12);
+      ctx.lineTo(x + cw - th, h * 0.12);
+      ctx.lineTo(x, h / 2);
+      ctx.lineTo(x + cw - th, h * 0.88);
+      ctx.lineTo(x + cw, h * 0.88);
+      ctx.lineTo(x + th, h / 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } },
+  flecha: { label: 'Flecha barrida', draw(ctx, w, h, lv) {
+    const n = 12, head = w * 0.48, body = h * 0.22;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(w * 0.04, h / 2);
+    ctx.lineTo(w * 0.04 + head, h * 0.08);
+    ctx.lineTo(w * 0.04 + head, h / 2 - body);
+    ctx.lineTo(w * 0.96, h / 2 - body);
+    ctx.lineTo(w * 0.96, h / 2 + body);
+    ctx.lineTo(w * 0.04 + head, h / 2 + body);
+    ctx.lineTo(w * 0.04 + head, h * 0.92);
+    ctx.closePath();
+    ctx.clip();
+    const sw = w / n;
+    for (let k = 0; k < n; k++) {
+      fillLv(ctx, ORANGE_RGB, lv(k, n));
+      const [x, sw2] = stripe(w, sw, k);
+      ctx.fillRect(x, 0, sw2, h);
+    }
+    ctx.restore();
+  } },
+  matriz: { label: 'Matriz LED', draw(ctx, w, h, lv) {
+    const cols = 11, rows = 15, gx = w / cols, gy = h / rows, r = Math.min(gx, gy) * 0.38;
+    for (let c = 0; c < cols; c++) {
+      fillLv(ctx, ORANGE_RGB, lv(cols - 1 - c, cols));
+      ctx.beginPath();
+      for (let row = 0; row < rows; row++) {
+        const y = Math.abs(row - (rows - 1) / 2) / ((rows - 1) / 2);
+        if (!(c <= 5 ? y <= c / 5 : y <= 0.34)) continue;
+        ctx.moveTo(gx * (c + 0.5) + r, gy * (row + 0.5));
+        ctx.arc(gx * (c + 0.5), gy * (row + 0.5), r, 0, Math.PI * 2);
+      }
+      ctx.fill();
+    }
+  } },
+  barras: { label: 'Barras dinámicas', draw(ctx, w, h, lv) {
+    const n = 10, bars = 9, gap = h * 0.025, bh = (h - gap * (bars + 1)) / bars, sw = w / n;
+    for (let b = 0; b < bars; b++) {
+      const y = gap + b * (bh + gap);
+      for (let k = 0; k < n; k++) {
+        fillLv(ctx, ORANGE_RGB, lv(k, n));
+        const [x, sw2] = stripe(w, sw, k);
+        ctx.fillRect(x, y, sw2, bh);
+      }
+    }
+  } },
+};
+
+const BRAKE_STYLES = {
+  anillos: { label: 'Anillos (cuadrado que crece)' },
+  persiana: { label: 'Persiana', draw(ctx, w, h, lv) {
+    const bars = 12, n = bars / 2, gap = h * 0.018, bh = (h - gap * (bars + 1)) / bars;
+    for (let b = 0; b < bars; b++) {
+      // Desde el centro hacia arriba y hacia abajo
+      fillLv(ctx, RED_RGB, lv(Math.floor(Math.abs(b - (bars - 1) / 2)), n));
+      ctx.fillRect(0, gap + b * (bh + gap), w, bh);
+    }
+  } },
+  matriz: { label: 'Matriz LED', draw(ctx, w, h, lv) {
+    const cols = 9, rows = 12, n = 8, gx = w / cols, gy = h / rows, r = Math.min(gx, gy) * 0.4;
+    for (let c = 0; c < cols; c++) {
+      for (let row = 0; row < rows; row++) {
+        const d = Math.hypot((c - (cols - 1) / 2) / cols, (row - (rows - 1) / 2) / rows) / 0.71;
+        fillLv(ctx, RED_RGB, lv(Math.min(n - 1, Math.floor(d * n)), n));
+        ctx.beginPath();
+        ctx.arc(gx * (c + 0.5), gy * (row + 0.5), r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  } },
+  marco: { label: 'Marco', draw(ctx, w, h, lv) {
+    // El borde se enciende primero y el centro al final de cada pulso
+    const bw = Math.min(w, h) * 0.12;
+    fillLv(ctx, RED_RGB, lv(0, 2));
+    ctx.fillRect(0, 0, w, bw);
+    ctx.fillRect(0, h - bw, w, bw);
+    ctx.fillRect(0, bw, bw, h - bw * 2);
+    ctx.fillRect(w - bw, bw, bw, h - bw * 2);
+    fillLv(ctx, RED_RGB, lv(1, 2));
+    ctx.fillRect(bw + 8, bw + 8, w - bw * 2 - 16, h - bw * 2 - 16);
+  } },
+  cortina: { label: 'Cortina', draw(ctx, w, h, lv) {
+    // Franjas verticales desde los costados hacia el centro
+    const n = 6, sw = w / 2 / n;
+    for (let k = 0; k < n; k++) {
+      fillLv(ctx, RED_RGB, lv(k, n));
+      const [x, sw2] = stripe(w, sw, k);
+      ctx.fillRect(w - x - sw2, 0, sw2, h);
+      ctx.fillRect(x, 0, sw2, h);
+    }
+  } },
+  estrobo: { label: 'Estrobo (tres destellos y luz fija)', draw(ctx, w, h, lv) {
+    fillLv(ctx, RED_RGB, lv(0, 1));
+    ctx.fillRect(0, 0, w, h);
+  } },
+};
+
+const HAZARD_STYLES = {
+  triangulos: { label: 'Dos triángulos' },
+  chevrons: { label: 'Chevrons dobles', draw(ctx, w, h, lv, vertical) {
+    // Igual que el giro: derecha arriba e izquierda abajo en vertical, lado a lado en horizontal
+    for (const side of ['left', 'right']) {
+      const [x, y, bw, bh] = vertical
+        ? [0, side === 'right' ? 0 : h / 2, w, h / 2]
+        : [side === 'left' ? 0 : w / 2, 0, w / 2, h];
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.beginPath(); ctx.rect(0, 0, bw, bh); ctx.clip();
+      facing(ctx, bw, side, () => TURN_STYLES.chevrons.draw(ctx, bw, bh, lv));
+      ctx.restore();
+    }
+  } },
+  advertencia: { label: 'Triángulo de advertencia', draw(ctx, w, h, lv) {
+    const v = lv(0, 1), s = Math.min(w, h * 1.1) * 0.92, cx = w / 2, cy = h * 0.55;
+    const tri = (scale) => {
+      const r = (s / 2) * scale;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r * 1.05);
+      ctx.lineTo(cx + r, cy + r * 0.68);
+      ctx.lineTo(cx - r, cy + r * 0.68);
+      ctx.closePath();
+    };
+    fillLv(ctx, ORANGE_RGB, v); tri(1); ctx.fill();
+    ctx.fillStyle = '#000'; tri(0.62); ctx.fill();
+    fillLv(ctx, ORANGE_RGB, v); tri(0.38); ctx.fill();
+  } },
+  alternas: { label: 'Barras alternas', draw(ctx, w, h, lv, vertical, t) {
+    // Una mitad y la otra se turnan en cada ciclo del intermitente
+    const on = lv(0, 1), first = Math.floor(t / 760) % 2 === 0;
+    const a = first ? on : OFF, b = first ? OFF : on;
+    const bars = 9, gap = h * 0.025, bh = (h - gap * (bars + 1)) / bars;
+    for (let i = 0; i < bars; i++) {
+      const y = gap + i * (bh + gap);
+      fillLv(ctx, ORANGE_RGB, a); ctx.fillRect(0, y, w / 2 - 3, bh);
+      fillLv(ctx, ORANGE_RGB, b); ctx.fillRect(w / 2 + 3, y, w / 2 - 3, bh);
+    }
+  } },
+};
+
+const art = $('#art');
+const artCtx = art.getContext('2d');
+const artShown = new Map(); // intensidad suavizada de cada elemento, como un LED real
+
+function artLevel(key, target, dt) {
+  const v = smooth(artShown.get(key) ?? OFF, target, dt);
+  artShown.set(key, v);
+  return v;
+}
+
+// Pinta la señal visible si su dibujo va en canvas; devuelve false si usa el SVG
+function paintArt(signal, levels, dt, now) {
+  if (settings.display !== 'una') return false;
+  let style;
+  if (signal === 'brake') style = BRAKE_STYLES[settings.brakeStyle];
+  else if (signal === 'hazard') style = HAZARD_STYLES[settings.hazardStyle];
+  else style = TURN_STYLES[settings.turnStyle];
+  if (!style?.draw) return false;
+
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.round(art.clientWidth * dpr), h = Math.round(art.clientHeight * dpr);
+  if (art.width !== w || art.height !== h) { art.width = w; art.height = h; }
+  artCtx.setTransform(1, 0, 0, 1, 0, 0);
+  artCtx.fillStyle = '#000';
+  artCtx.fillRect(0, 0, w, h);
+
+  const lv = (k, n) => artLevel(`${signal}:${k}/${n}`, levels(k, n), dt);
+  if (signal === 'brake' || signal === 'hazard') style.draw(artCtx, w, h, lv, h > w, now);
+  else facing(artCtx, w, signal, () => style.draw(artCtx, w, h, lv));
+  return true;
+}
+
 // Los LED encienden rápido y se apagan con una cola suave
 function smooth(current, target, dt) {
   const tau = target > current ? 25 : 90;
@@ -361,7 +578,29 @@ function render(now) {
     lastTurnOn = turnOn;
   }
 
-  showOnly(currentSignal(now));
+  const signal = currentSignal(now);
+  showOnly(signal);
+
+  // Intensidades para los dibujos en canvas, con el mismo ritmo que las franjas del SVG
+  let levels;
+  if (signal === 'brake') {
+    if (state.brake && now < state.brake.until) {
+      const t = now - state.brake.start;
+      const ramp = settings.brakeRampSeconds * 1000;
+      const level = ramp > 0 ? Math.min(1, 0.4 + 0.6 * (t / ramp)) : 1;
+      levels = settings.brakeStyle === 'estrobo' && t < 540
+        ? () => (t % 180 < 90 ? 1 : OFF)
+        : (k, n) => brakeFn(t, k, level, n);
+    } else {
+      levels = (k) => brake(k);
+    }
+  } else {
+    const start = state.hazard ? state.hazard.start : state.turn?.start ?? now;
+    levels = (k, n) => turnFn(now - start, k, Math.max(2, n));
+  }
+  const usesArt = paintArt(signal, levels, dt, now - (state.hazard?.start ?? 0));
+  document.body.classList.toggle('art-on', usesArt);
+
   paintSegments(turnLights.left, left, dt);
   paintSegments(turnLights.right, right, dt);
   paintSegments(brakeLight, brake, dt);
@@ -439,8 +678,8 @@ function showOnly(signal) {
 }
 
 function applyLayout() {
-  document.body.classList.remove('layout-auto', 'layout-horizontal', 'layout-vertical', 'display-una', 'display-tres');
-  document.body.classList.add(`layout-${settings.layout}`, `display-${settings.display}`);
+  document.body.classList.remove('layout-auto', 'layout-horizontal', 'layout-vertical', 'display-una', 'display-tres', 'btn-tarjetas', 'btn-circulos');
+  document.body.classList.add(`layout-${settings.layout}`, `display-${settings.display}`, `btn-${settings.buttonStyle}`);
 }
 
 /* =========================================================
@@ -1090,6 +1329,9 @@ function fillSelect(select, patterns) {
 fillSelect($('#idle-pattern'), IDLE_PATTERNS);
 fillSelect($('#turn-pattern'), TURN_PATTERNS);
 fillSelect($('#brake-effect'), BRAKE_EFFECTS);
+fillSelect($('#turn-style'), TURN_STYLES);
+fillSelect($('#brake-style'), BRAKE_STYLES);
+fillSelect($('#hazard-style'), HAZARD_STYLES);
 
 function contactRow(contact = { name: '', phone: '' }) {
   const row = document.createElement('div');
