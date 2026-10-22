@@ -67,6 +67,7 @@ Es HTML, CSS y JavaScript sin dependencias ni compilación. Necesita HTTPS (micr
 
 - **Probar en local:** `npx http-server .` y abrir `http://localhost:8080` (localhost cuenta como seguro).
 - **Publicar:** el workflow `.github/workflows/pages.yml` publica en GitHub Pages en cada push a `main`. Hay que activarlo una vez en *Settings → Pages → Source: GitHub Actions*.
+- **Cloudflare Pages:** la app también se publica en https://bikeligts.pages.dev con cada push a `main` (proyecto `bikeligts` conectado al repo; build: `mkdir -p _site && cp -r index.html app.js styles.css sw.js manifest.webmanifest icons fonts img _site/`, salida `_site`). Cada PR recibe además una dirección de vista previa.
 - **Instalar:** abrir la URL en el teléfono y elegir «Agregar a la pantalla de inicio».
 
 ## App de iPhone (Capacitor)
