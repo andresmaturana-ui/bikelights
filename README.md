@@ -68,3 +68,22 @@ Es HTML, CSS y JavaScript sin dependencias ni compilación. Necesita HTTPS (micr
 - **Probar en local:** `npx http-server .` y abrir `http://localhost:8080` (localhost cuenta como seguro).
 - **Publicar:** el workflow `.github/workflows/pages.yml` publica en GitHub Pages en cada push a `main`. Hay que activarlo una vez en *Settings → Pages → Source: GitHub Actions*.
 - **Instalar:** abrir la URL en el teléfono y elegir «Agregar a la pantalla de inicio».
+
+## App de iPhone (Capacitor)
+
+En Safari, el micrófono pausa la música. La app nativa usa el reconocimiento de voz de iOS con una sesión de audio que se mezcla con Spotify, retoma la escucha sola después de una llamada y mantiene la pantalla encendida. Usa el mismo código web: `scripts/build-web.mjs` lo copia a `www/` y le agrega el runtime de Capacitor. El código nativo está en `ios/App/App/VozPlugin.swift`.
+
+- `npm ci && npm run ios:sync` prepara el proyecto `ios/`.
+- Con un Mac, `npm run ios:open` lo abre en Xcode para instalarlo en el teléfono.
+- Sin Mac, el workflow «App de iPhone» compila en GitHub Actions. En cada PR solo revisa que compile. Al lanzarlo a mano desde Actions, firma la app y la sube a TestFlight.
+
+Para subir a TestFlight se necesita:
+
+1. Una cuenta de Apple Developer (USD 99 al año).
+2. Una app creada en App Store Connect con el bundle ID `cl.andresmaturana.senalizador`.
+3. Una clave de API de App Store Connect con rol Admin (Usuarios y acceso > Integraciones).
+4. Cuatro secretos en el repo (Settings > Secrets and variables > Actions):
+   - `ASC_KEY_ID`: el ID de la clave.
+   - `ASC_ISSUER_ID`: el Issuer ID.
+   - `ASC_KEY_P8`: el contenido completo del archivo `.p8`.
+   - `APPLE_TEAM_ID`: el Team ID, que aparece en developer.apple.com > Membership.

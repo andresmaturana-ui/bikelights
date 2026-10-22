@@ -386,7 +386,7 @@ function ensureAudio() {
   const Ctx = window.AudioContext || window.webkitAudioContext;
   if (!Ctx) return null;
   // iOS/Safari: "ambient" mezcla los sonidos con la música (Spotify) en vez de pausarla
-  if (navigator.audioSession) {
+  if (navigator.audioSession && !NativeVoz) {
     try { navigator.audioSession.type = 'ambient'; } catch { /* no soportado */ }
   }
   if (!audioCtx) audioCtx = new Ctx();
@@ -447,7 +447,59 @@ function applyLayout() {
    Reconocimiento de voz
    ========================================================= */
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+// En la app de iPhone (Capacitor) la voz es nativa: escucha sin pausar la música
+// y se retoma sola después de una llamada. Imita la interfaz de SpeechRecognition.
+const NativeVoz = (() => {
+  const cap = window.Capacitor;
+  if (!cap?.isNativePlatform?.()) return null;
+  return cap.registerPlugin ? cap.registerPlugin('Voz') : cap.Plugins?.Voz || null;
+})();
+
+class NativeRecognition {
+  constructor() {
+    this.lang = 'es-CL';
+    this.continuous = true;
+    this.interimResults = true;
+    this.subs = [];
+  }
+
+  async start() {
+    this.subs.push(await NativeVoz.addListener('result', ({ text, segment }) => {
+      // Cada tramo de escucha nativo equivale a un resultado de la Web Speech API
+      const results = [];
+      results[segment] = [{ transcript: text }];
+      this.onresult?.({ resultIndex: segment, results });
+    }));
+    this.subs.push(await NativeVoz.addListener('state', ({ listening }) => {
+      if (recognition === this) setMicState(listening ? 'Escuchando' : 'En pausa', listening ? 'listening' : '');
+    }));
+    try {
+      await NativeVoz.start({ lang: this.lang });
+      this.onstart?.();
+    } catch (err) {
+      this.onerror?.({ error: /permiso/i.test(err?.message || '') ? 'not-allowed' : 'audio-capture' });
+      this.finish();
+    }
+  }
+
+  stop() {
+    NativeVoz.stop().catch(() => {});
+    this.finish();
+  }
+
+  abort() {
+    this.stop();
+  }
+
+  finish() {
+    for (const sub of this.subs.splice(0)) sub.remove();
+    setTimeout(() => this.onend?.(), 0);
+  }
+}
+
+const SpeechRecognition = NativeVoz
+  ? NativeRecognition
+  : window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 let wantListening = false;
 let firedPerResult = new Map(); // índice del resultado -> cuántos comandos ya se ejecutaron
@@ -682,6 +734,10 @@ let wakeLock = null;
 let riding = false;
 
 async function keepScreenOn() {
+  if (NativeVoz) {
+    NativeVoz.keepAwake({ on: true }).catch(() => {});
+    return;
+  }
   if (!('wakeLock' in navigator) || wakeLock) return;
   try {
     wakeLock = await navigator.wakeLock.request('screen');
@@ -706,13 +762,13 @@ document.addEventListener('visibilitychange', () => {
    ========================================================= */
 
 function isStandalone() {
-  return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  return !!NativeVoz || window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 }
 
 function renderSupport() {
   const items = [
     [!!SpeechRecognition, 'Reconocimiento de voz', 'Este navegador no reconoce voz: usa los botones o prueba Chrome en Android.'],
-    ['wakeLock' in navigator, 'Pantalla siempre encendida', 'No se puede impedir que la pantalla se apague: desactiva el bloqueo automático en los ajustes del teléfono.'],
+    [!!NativeVoz || 'wakeLock' in navigator, 'Pantalla siempre encendida', 'No se puede impedir que la pantalla se apague: desactiva el bloqueo automático en los ajustes del teléfono.'],
     ['geolocation' in navigator, 'GPS', 'Sin GPS: no hay ubicación para el SOS ni detección de giro.'],
   ];
   const list = $('#support');
@@ -724,7 +780,7 @@ function renderSupport() {
     if (!ok) li.className = 'warn';
     list.append(li);
   }
-  if (IS_IOS && settings.voiceMode === 'siempre') {
+  if (IS_IOS && !NativeVoz && settings.voiceMode === 'siempre') {
     const li = document.createElement('li');
     li.className = 'warn';
     li.innerHTML = icon('alert', 'ic-sm');
@@ -809,6 +865,7 @@ function endRide() {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
   }
+  NativeVoz?.keepAwake({ on: false }).catch(() => {});
   wakeLock?.release().catch(() => {});
   wakeLock = null;
   clearTimeout(hudTimer);
