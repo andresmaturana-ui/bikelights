@@ -44,6 +44,7 @@ const TURN_PATTERNS = {
 // Al comenzar el recorrido: animación de bienvenida, como los autos al desbloquearse
 const WELCOME_MS = 1600;
 
+const IS_ANDROID = /Android/i.test(navigator.userAgent);
 const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 // ---------- Comandos ----------
@@ -686,13 +687,21 @@ function applyLayout() {
    Reconocimiento de voz
    ========================================================= */
 
-// En la app de iPhone (Capacitor) la voz es nativa: escucha sin pausar la música
-// y se retoma sola después de una llamada. Imita la interfaz de SpeechRecognition.
+// En las apps de iPhone y Android (Capacitor) la voz es nativa: escucha sin pausar
+// la música, sin pitidos, y se retoma sola después de una llamada. Imita la interfaz
+// de SpeechRecognition.
 const NativeVoz = (() => {
   const cap = window.Capacitor;
   if (!cap?.isNativePlatform?.()) return null;
   return cap.registerPlugin ? cap.registerPlugin('Voz') : cap.Plugins?.Voz || null;
 })();
+
+// Todas las palabras de comando, tal como se escribieron y sin tildes. En Android el
+// reconocedor solo busca estas palabras.
+function commandPhrases() {
+  const all = Object.values(settings.commands).flatMap((list) => list.split(','));
+  return [...new Set(all.flatMap((p) => [p.trim().toLowerCase(), normalize(p)]).filter(Boolean))];
+}
 
 class NativeRecognition {
   constructor() {
@@ -713,7 +722,7 @@ class NativeRecognition {
       if (recognition === this) setMicState(listening ? 'Escuchando' : 'En pausa', listening ? 'listening' : '');
     }));
     try {
-      await NativeVoz.start({ lang: this.lang });
+      await NativeVoz.start({ lang: this.lang, phrases: commandPhrases() });
       this.onstart?.();
     } catch (err) {
       this.onerror?.({ error: /permiso/i.test(err?.message || '') ? 'not-allowed' : 'audio-capture' });
@@ -1024,6 +1033,13 @@ function renderSupport() {
     li.className = 'warn';
     li.innerHTML = icon('alert', 'ic-sm');
     li.append('En iPhone la música se pausa mientras el micrófono escucha.');
+    list.append(li);
+  }
+  if (IS_ANDROID && !NativeVoz && settings.voiceMode === 'siempre') {
+    const li = document.createElement('li');
+    li.className = 'warn';
+    li.innerHTML = icon('alert', 'ic-sm');
+    li.append('En Android el servicio de voz de Google suena cada vez que reactiva el micrófono. La app de Android no tiene ese pitido.');
     list.append(li);
   }
   if (!settings.contacts.length) {
@@ -1399,7 +1415,9 @@ function openSettings() {
 
 form.addEventListener('submit', () => {
   const next = readForm();
-  const langChanged = next.lang !== settings.lang;
+  // La voz nativa de Android busca solo las palabras de comando: si cambian, se reinicia
+  const langChanged = next.lang !== settings.lang
+    || (!!NativeVoz && JSON.stringify(next.commands) !== JSON.stringify(settings.commands));
   settings = next;
   saveSettings();
   applyLayout();

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Señalizador</string>
+    <string name="title_activity_main">Señalizador</string>
+    <string name="package_name">cl.andresmaturana.senalizador</string>
+    <string name="custom_url_scheme">cl.andresmaturana.senalizador</string>
+</resources>

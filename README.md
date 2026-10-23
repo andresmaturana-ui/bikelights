@@ -88,3 +88,13 @@ Para subir a TestFlight se necesita:
    - `ASC_ISSUER_ID`: el Issuer ID.
    - `ASC_KEY_P8`: el contenido completo del archivo `.p8`.
    - `APPLE_TEAM_ID`: el Team ID, que aparece en developer.apple.com > Membership.
+
+## App de Android (Capacitor)
+
+En Android, el reconocimiento de voz de Chrome usa el servicio de Google, que suena con un pitido cada vez que el micrófono se reactiva (cada pocos segundos de silencio). La app de Android usa en su lugar [Vosk](https://alphacephei.com/vosk/), un reconocedor sin conexión: escucha continuo, sin pitidos y sin pausar la música. Solo busca las palabras de comando de Ajustes, así reconoce mejor y no confunde ruido con órdenes.
+
+- **Código:** `android/` (Capacitor 8). El plugin de voz está en `android/app/src/main/java/cl/andresmaturana/senalizador/VozPlugin.java` y expone la misma interfaz que el de iPhone (`start`, `stop`, `keepAwake`).
+- **Modelo de voz:** `vosk-model-small-es-0.42` (unos 40 MB). No está en el repo: el workflow lo descarga al compilar y lo pone en `android/app/src/main/assets/model-es`.
+- **Compilar:** `.github/workflows/android.yml` compila el APK en cada PR (queda como artefacto) y, con cada cambio en `main`, lo sube a la versión [«android»](../../releases/tag/android) del repo.
+- **Instalar sin tienda:** abre la versión «android» desde el teléfono (con tu sesión de GitHub), descarga `senalizador.apk` y ábrelo. Android pide permitir «instalar apps desconocidas» la primera vez. Las actualizaciones se instalan encima porque el APK siempre se firma con la misma llave (`android/app/sideload.keystore`, solo para instalación directa; Google Play usará su propia firma).
+- **Local:** `npm run android:sync` y `npm run android:open` (Android Studio), con el modelo descargado en la carpeta de arriba.
