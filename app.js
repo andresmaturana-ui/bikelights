@@ -995,8 +995,22 @@ async function keepScreenOn() {
   }
 }
 
+// Al salir de la app o cerrarla se suelta el micrófono; al volver se retoma
+function releaseMic() {
+  if (!recognition) return;
+  recognition.onend = null;
+  try { recognition.abort(); } catch { /* ya detenido */ }
+  recognition = null;
+  oneShot = false;
+}
+
+window.addEventListener('pagehide', releaseMic);
+
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible') return;
+  if (document.visibilityState !== 'visible') {
+    releaseMic();
+    return;
+  }
   if (riding) {
     keepScreenOn();
     if (audioCtx && settings.sound) ensureAudio();
