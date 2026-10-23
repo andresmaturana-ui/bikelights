@@ -1148,6 +1148,8 @@ $('#btn-new-ride').addEventListener('click', () => {
 
 $('#btn-start').addEventListener('click', startRide);
 $('#btn-start-settings').addEventListener('click', openSettings);
+// Ofrece la app de Android (voz sin pitidos) fuera de la app nativa; en iPhone no sirve
+$('#btn-android').classList.toggle('hidden', !!NativeVoz || IS_IOS);
 $('#btn-settings').addEventListener('click', openSettings);
 
 for (const btn of document.querySelectorAll('.ctl')) {

@@ -31,6 +31,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: android-${{ github.ref }}
@@ -91,3 +92,5 @@ jobs:
           gh release view android >/dev/null 2>&1 || gh release create android --prerelease \
             --title "App de Android" --notes "APK para instalar directo en el teléfono. Se actualiza con cada cambio en main."
           gh release upload android senalizador.apk --clobber
+          # Vuelve a publicar la web para que el botón de descarga tenga el APK nuevo
+          gh workflow run pages.yml --ref main
