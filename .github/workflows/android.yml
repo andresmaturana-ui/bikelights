@@ -1,0 +1,93 @@
+name: App de Android
+
+on:
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'app.js'
+      - 'index.html'
+      - 'styles.css'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.json'
+      - 'scripts/**'
+      - '.github/workflows/android.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'app.js'
+      - 'index.html'
+      - 'styles.css'
+      - 'img/**'
+      - 'fonts/**'
+      - 'icons/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.json'
+      - 'scripts/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VOSK_MODEL: vosk-model-small-es-0.42
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: npm ci
+      - run: npm run android:sync
+
+      # Modelo de voz en español sin conexión (unos 40 MB): se descarga una vez y queda en caché
+      - id: model
+        uses: actions/cache@v4
+        with:
+          path: android/app/src/main/assets/model-es
+          key: ${{ env.VOSK_MODEL }}
+      - name: Descargar modelo de voz
+        if: steps.model.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL -o model.zip "https://alphacephei.com/vosk/models/$VOSK_MODEL.zip"
+          unzip -q model.zip
+          mv "$VOSK_MODEL" android/app/src/main/assets/model-es
+          echo "$VOSK_MODEL" > android/app/src/main/assets/model-es/uuid
+
+      - name: Compilar APK
+        working-directory: android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+        run: ./gradlew --no-daemon assembleRelease
+
+      - run: cp android/app/build/outputs/apk/release/app-release.apk senalizador.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: senalizador-apk
+          path: senalizador.apk
+
+      # Con cada cambio en main se actualiza el APK de la versión «android» para instalarlo en el teléfono
+      - name: Publicar APK
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view android >/dev/null 2>&1 || gh release create android --prerelease \
+            --title "App de Android" --notes "APK para instalar directo en el teléfono. Se actualiza con cada cambio en main."
+          gh release upload android senalizador.apk --clobber

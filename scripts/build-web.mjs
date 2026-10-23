@@ -1,4 +1,4 @@
-// Copia la app web a www/ para empaquetarla en la app de iPhone (Capacitor).
+// Copia la app web a www/ para empaquetarla en las apps de iPhone y Android (Capacitor).
 // En la app se agrega el runtime de Capacitor, que da acceso a la voz nativa.
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
