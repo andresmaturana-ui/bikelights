@@ -28,6 +28,11 @@ jobs:
         run: |
           mkdir _site
           cp -r index.html app.js styles.css sw.js manifest.webmanifest icons fonts img _site/
+      # El APK de Android (versión «android») se publica junto a la web para descargarlo sin sesión
+      - name: Agregar APK de Android
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download android -p senalizador.apk -D _site -R "$GITHUB_REPOSITORY" || echo 'Aún no hay APK'
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

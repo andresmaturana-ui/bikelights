@@ -536,6 +536,21 @@ body.ride-ended #signals, body.ride-ended #btn-sos, body.ride-ended #controls { 
 @keyframes go-pulse { 0%, 100% { filter: none; } 50% { filter: drop-shadow(0 0 14px var(--orange)); } }
 .link { background: none; border: 0; color: #d9d4cc; font: italic 800 15px var(--display); text-transform: uppercase; letter-spacing: .1em; text-decoration: underline; text-underline-offset: 4px; padding: 8px; }
 .start .support { max-width: 420px; text-align: left; }
+.get-android {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 22px;
+  border: 2px solid var(--orange);
+  border-radius: 999px;
+  color: var(--orange);
+  font: italic 800 16px var(--display);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  text-decoration: none;
+}
+.get-android:active { background: var(--orange); color: #000; }
 
 @media (prefers-reduced-motion: reduce) {
   .go, .fx-half, .fx-glow, .fx-ico { animation: none; }
