@@ -639,7 +639,17 @@ function ensureAudio() {
 function beep(freq, duration, freqEnd = freq, type = 'square', level = 1) {
   if (!settings.sound) return;
   const ctx = ensureAudio();
-  if (!ctx || ctx.state !== 'running') return;
+  if (!ctx) return;
+  // Android suspende el audio a ratos (al abrir el micrófono, al volver a la app):
+  // en vez de perder el sonido, se reanuda y se toca apenas vuelva
+  if (ctx.state !== 'running') {
+    ctx.resume().then(() => { if (ctx.state === 'running') playTone(ctx, freq, duration, freqEnd, type, level); }).catch(() => {});
+    return;
+  }
+  playTone(ctx, freq, duration, freqEnd, type, level);
+}
+
+function playTone(ctx, freq, duration, freqEnd, type, level) {
   const t = ctx.currentTime;
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -1105,6 +1115,9 @@ document.addEventListener('keydown', (e) => {
   e.preventDefault();
   if (!e.repeat) doAction(action, 'control');
 });
+
+// Cualquier toque en pantalla deja el audio desbloqueado (Android lo exige tras un gesto)
+document.addEventListener('pointerdown', () => { if (riding && settings.sound) ensureAudio(); }, { passive: true });
 
 async function startRide() {
   riding = true;
