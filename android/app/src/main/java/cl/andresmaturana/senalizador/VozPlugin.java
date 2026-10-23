@@ -207,6 +207,13 @@ public class VozPlugin extends Plugin implements RecognitionListener {
         notifyState(false);
     }
 
+    // Al salir de la app se suelta el micrófono; la página lo retoma al volver
+    @Override
+    protected void handleOnPause() {
+        end();
+        notifyState(false);
+    }
+
     @Override
     protected void handleOnDestroy() {
         end();
